@@ -21,7 +21,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="wpilib">
         <CLASSES>
           <root url="file://$wpilib$" />
@@ -32,7 +32,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="networktables">
         <CLASSES>
           <root url="file://$networktables$" />
@@ -43,7 +43,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="opencv">
         <CLASSES>
           <root url="file://$opencv$" />
@@ -54,7 +54,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="cscore">
         <CLASSES>
           <root url="file://$cscore$" />
@@ -65,8 +65,8 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="jdk" jdkName="JavaSE-1.8" jdkType="JavaSDK" />
-    <orderEntry type="module-library">
+    <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
+    <orderEntry type="module-library" exported="">
       <library name="CTRLib.jar">
         <CLASSES>
           <root url="file://$USERLIBS_DIR$/CTRLib.jar" />
