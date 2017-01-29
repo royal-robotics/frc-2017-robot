@@ -1,6 +1,0 @@
--classpath '/home/connor/Documents/royal_robotics/frc-2017-robot/build/classes/main:/home/connor/Documents/royal_robotics/frc-2017-robot/build/resources/main:/home/connor/.gradle/caches/modules-2/files-2.1/edu.wpi.first.wpilib.networktables.java/NetworkTables/3.1.5/59920129152692ac5d17e03385032e78fdf59df2/NetworkTables-3.1.5-desktop.jar:/home/connor/.gradle/caches/modules-2/files-2.1/edu.wpi.first.wpilib.networktables.java/NetworkTables/3.1.5/181e1bee717055d1ac9478e3ec3c17c69e205b16/NetworkTables-3.1.5-arm.jar:/home/connor/.gradle/caches/modules-2/files-2.1/edu.wpi.first.wpilibj/wpilibJavaFinal/2016.5.1/340606a96e9914b9bcecec43406cbc8f58e1a14f/wpilibJavaFinal-2016.5.1.jar'
--d '/home/connor/Documents/royal_robotics/frc-2017-robot/build/docs/javadoc'
--doctitle 'frc-2017-robot API'
--quiet 
--windowtitle 'frc-2017-robot API'
-'/home/connor/Documents/royal_robotics/frc-2017-robot/src/main/java/org/usfirst/frc/team2522/Robot.java'
