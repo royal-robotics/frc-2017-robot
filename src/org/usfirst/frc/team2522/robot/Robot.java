@@ -35,42 +35,38 @@ public class Robot extends IterativeRobot
 	boolean cameraButtonHeld = false;
 	boolean camera1on = false;
 	
-	VictorSP frontLeftDrive = new VictorSP(0);
-	VictorSP frontRightDrive = new VictorSP(1);
-	VictorSP backLeftDrive = new VictorSP(2);
-	VictorSP backRightDrive = new VictorSP(3);
+	VictorSP leftDrive1 = new VictorSP(0);
+	VictorSP leftDrive2 = new VictorSP(1);
+	VictorSP rightDrive1 = new VictorSP(2);
+	VictorSP rightDrive2 = new VictorSP(3);
 	
-	CANTalon leftShooter = new CANTalon(0);
-	CANTalon rightShooter = new CANTalon(1);
+	CANTalon pickup = new CANTalon(5);
+	CANTalon feeder = new CANTalon(2);
+	CANTalon shooter1 = new CANTalon(0);
+	CANTalon shooter2 = new CANTalon(1);
 	
-	CANTalon pickup = new CANTalon(2);
+	CANTalon climber1 = new CANTalon(3);
+	CANTalon climber2 = new CANTalon(4);
 	
-	CANTalon leftClimber = new CANTalon(3);
-	CANTalon rightClimber = new CANTalon(4);
-	
-	CANTalon feeder = new CANTalon(5);
-
 	Joystick leftStick = new Joystick(0);
 	Joystick rightStick = new Joystick(1);
+	Joystick operatorStick = new Joystick(2);
 	
-	Encoder frontLeftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
-	Encoder frontRightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
+	Encoder leftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
+	Encoder rightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
 	
 	Encoder shooterEncoder = new Encoder(new DigitalInput(6), new DigitalInput(7));
 	
 	RobotDrive myDrive;
 	
-	DoubleSolenoid leftShifter = new DoubleSolenoid(0, 0, 1);
-	DoubleSolenoid rightShifter = new DoubleSolenoid(0, 2, 3);
+	DoubleSolenoid shifter = new DoubleSolenoid(0, 3, 4);
 	
-	DoubleSolenoid intake = new DoubleSolenoid(0, 4, 5);
-	DoubleSolenoid ballPit = new DoubleSolenoid(0, 6, 7);
-	DoubleSolenoid gearPushout = new DoubleSolenoid(1, 0, 1);
-	DoubleSolenoid drapes = new DoubleSolenoid(1, 2, 3);
-	DoubleSolenoid shooterHood = new DoubleSolenoid(1, 4, 5);
-	
-	DigitalOutput LED = new DigitalOutput(0);
-	
+	DoubleSolenoid intake = new DoubleSolenoid(0, 2, 5);
+	DoubleSolenoid gearWall = new DoubleSolenoid(0, 1, 6);
+	DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);
+	DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
+	DoubleSolenoid shooterHood = new DoubleSolenoid(1, 2, 5);
+		
 	AnalogInput sensor = new AnalogInput(0);
 	
 	// Joysticks //
@@ -78,7 +74,13 @@ public class Robot extends IterativeRobot
 	Joystick rightstick = new Joystick(1);
 	Joystick operatorstick = new Joystick(2);
 	
-	Button shiftButton = new Button(leftstick, 1, Button.ButtonType.Toggle);
+	Button shiftButton = new Button(rightstick, 1, Button.ButtonType.Toggle);
+	Button intakeButton = new Button(rightstick, 2, Button.ButtonType.Toggle);
+	Button gearWallButton = new Button(rightstick, 3, Button.ButtonType.Toggle);
+	Button gearPushoutButton = new Button(rightstick, 4, Button.ButtonType.Toggle);
+	Button gearDrapesButton = new Button(rightstick, 5, Button.ButtonType.Toggle);
+	Button shooterHoodButton = new Button(rightstick, 6, Button.ButtonType.Toggle);
+
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
 //	public static double driveTranDistancePerPulse = ( * 3.1415) / ( * ( / ) * ( / ));
 	
@@ -89,8 +91,14 @@ public class Robot extends IterativeRobot
 //		frontRightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
 //		frontRightDriveEncoder.reset();
 		
-    	myDrive = new RobotDrive(frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive);
-		
+    	myDrive = new RobotDrive(leftDrive1, leftDrive2, rightDrive1, rightDrive2);
+    	shifter.set(DoubleSolenoid.Value.kForward);
+    	intake.set(DoubleSolenoid.Value.kForward);
+    	gearWall.set(DoubleSolenoid.Value.kForward);
+    	gearPushout.set(DoubleSolenoid.Value.kForward);
+    	gearDrapes.set(DoubleSolenoid.Value.kForward);
+    	shooterHood.set(DoubleSolenoid.Value.kForward);
+
 //    	shooterEncoder.setDistancePerPulse(shooterDistancePerPulse);
 //    	shooterEncoder.reset();
     	
@@ -128,17 +136,11 @@ public class Robot extends IterativeRobot
 	
 	boolean shifted = false;
 	boolean intakeOut = false;
-	boolean intakeButtonHeld = false;
-	boolean ballPitUp = false;
-	boolean ballPitButtonHeld = false;
+	boolean gearWallUp = false;
 	boolean gearPushin = false;
-	boolean gearPushoutButtonHeld = false;
-	boolean draped = false;
-	boolean drapesButtonHeld = false;
+	boolean gearDraped = false;
 	boolean shooterHoodUp = false;
-	boolean shooterButtonHeld = false;
 	boolean LEDOn = false;
-	boolean LEDButtonHeld = false;
 	
 	public void teleopPeriodic()
 	{
@@ -148,127 +150,95 @@ public class Robot extends IterativeRobot
 		{
 			if (shifted)
 			{
-				leftShifter.set(DoubleSolenoid.Value.kReverse);
-				rightShifter.set(DoubleSolenoid.Value.kReverse);
+				shifter.set(DoubleSolenoid.Value.kReverse);
 				shifted = false;
 			}
 			else
 			{
-				leftShifter.set(DoubleSolenoid.Value.kForward);
-				rightShifter.set(DoubleSolenoid.Value.kForward);
+				shifter.set(DoubleSolenoid.Value.kForward);
 				shifted = true;
 			}
 		}
 		
-		if (rightStick.getRawButton(1) && (!intakeButtonHeld))
+		if (intakeButton.isPressed())
 		{	
 			if (intakeOut)
 			{
 				intake.set(DoubleSolenoid.Value.kReverse);
 				intakeOut = false;
-				intakeButtonHeld = true;
 			}
 			else
 			{
 				intake.set(DoubleSolenoid.Value.kForward);
 				intakeOut = true;
-				intakeButtonHeld = true;
 			}
 		}
-		else
-		{
-			intakeButtonHeld = false;
-		}
 		
-		if (rightStick.getRawButton(2) && (!ballPitButtonHeld))
+		if (gearWallButton.isPressed())
 		{	
-			if (ballPitUp)
+			if (gearWallUp)
 			{
-				ballPit.set(DoubleSolenoid.Value.kReverse);
-				ballPitUp = false;
-				ballPitButtonHeld = true;
+				gearWall.set(DoubleSolenoid.Value.kReverse);
+				gearWallUp = false;
 			}
 			else
 			{
-				ballPit.set(DoubleSolenoid.Value.kForward);
-				ballPitUp = true;
-				ballPitButtonHeld = true;
+				gearWall.set(DoubleSolenoid.Value.kForward);
+				gearWallUp = true;
 			}
 		}
-		else
-		{
-			ballPitButtonHeld = false;
-		}
-		
-		if (rightStick.getRawButton(3) && (!gearPushoutButtonHeld))
+
+		if (gearPushoutButton.isPressed())
 		{	
-			if (intakeOut)
+			if (gearPushin)
 			{
 				gearPushout.set(DoubleSolenoid.Value.kReverse);
 				gearPushin = false;
-				gearPushoutButtonHeld = true;
 			}
 			else
 			{
 				gearPushout.set(DoubleSolenoid.Value.kForward);
 				gearPushin = true;
-				gearPushoutButtonHeld = true;
 			}
 		}
-		else
-		{
-			gearPushoutButtonHeld = false;
-		}
-		
-		if (rightStick.getRawButton(4) && (!drapesButtonHeld))
+
+		if (gearDrapesButton.isPressed())
 		{	
-			if (draped)
+			if (gearDraped)
 			{
-				drapes.set(DoubleSolenoid.Value.kReverse);
-				draped = false;
-				drapesButtonHeld = true;
+				gearDrapes.set(DoubleSolenoid.Value.kReverse);
+				gearDraped = false;
 			}
 			else
 			{
-				drapes.set(DoubleSolenoid.Value.kForward);
-				draped = true;
-				drapesButtonHeld = true;
+				gearDrapes.set(DoubleSolenoid.Value.kForward);
+				gearDraped = true;
 			}
 		}
-		else
-		{
-			drapesButtonHeld = false;
-		}
-		
-		if (rightStick.getRawButton(5) && (!shooterButtonHeld))
+
+		if (shooterHoodButton.isPressed())
 		{	
 			if (shooterHoodUp)
 			{
 				shooterHood.set(DoubleSolenoid.Value.kReverse);
 				shooterHoodUp = false;
-				shooterButtonHeld = true;
 			}
 			else
 			{
 				shooterHood.set(DoubleSolenoid.Value.kForward);
 				shooterHoodUp = true;
-				shooterButtonHeld = true;
 			}
 		}
-		else
-		{
-			shooterButtonHeld = false;
-		}
-		
+
 		if (leftStick.getRawButton(2))
 		{
-			leftShooter.set(1.0);
-			rightShooter.set(1.0);
+			shooter1.set(1.0);
+			shooter2.set(1.0);
 		}
 		else
 		{
-			leftShooter.set(0.0);
-			rightShooter.set(0.0);
+			shooter1.set(0.0);
+			shooter2.set(0.0);
 		}
 		
 		if (leftStick.getRawButton(3))
@@ -281,13 +251,13 @@ public class Robot extends IterativeRobot
 		
 		if (leftStick.getRawButton(4))
 		{
-			leftClimber.set(1.0);
-			rightClimber.set(1.0);
+			climber1.set(1.0);
+			climber2.set(1.0);
 		}
 		else
 		{
-			leftClimber.set(0.0);
-			rightClimber.set(0.0);
+			climber1.set(0.0);
+			climber2.set(0.0);
 		}
 		
 		if (leftStick.getRawButton(5))
@@ -301,26 +271,6 @@ public class Robot extends IterativeRobot
 		
 		
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
-		
-		if (rightStick.getRawButton(6) && (!LEDButtonHeld))
-		{
-			if (LEDOn)
-			{
-				LED.set(true);
-				LEDOn = true;
-				LEDButtonHeld = true;
-			}
-			else
-			{
-				LED.set(false);
-				LEDOn = true;
-				LEDButtonHeld = true;
-			}
-		}
-		else
-		{
-			LEDButtonHeld = false;
-		}
 		
 		ButtonFeeder.INSTANCE.feed();
 	}
