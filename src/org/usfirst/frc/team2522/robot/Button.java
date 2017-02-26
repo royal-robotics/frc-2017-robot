@@ -17,22 +17,29 @@ public class Button {
 		this.stick = stick;
 		this.buttonId = buttonId;
 		this.type = type;
+		this.previousValue = stick.getRawButton(buttonId);
 		
-		ButtonFeeder.INSTANCE.addButton(this);
+		//ButtonFeeder.INSTANCE.addButton(this);
 	}
 	
 	public void feed() {
-		previousValue = stick.getRawButton(buttonId);
+		//previousValue = stick.getRawButton(buttonId);
 	}
 	
 	public boolean isPressed() {
 		boolean value = stick.getRawButton(buttonId);
+		boolean retValue = false;
 		switch(type) {
 			case Hold:
-				return value;
+				retValue = value;
+				break;
 			case Toggle:
-				return !previousValue && value;
+			{
+				retValue = !previousValue && value;
+				break;
+			}
 		}
-		return false;
+		previousValue = value;
+		return retValue;
 	}
 }

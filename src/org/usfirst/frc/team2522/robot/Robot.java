@@ -1,8 +1,11 @@
 package org.usfirst.frc.team2522.robot;
 
+import java.nio.ByteBuffer;
+
 import org.opencv.core.Mat;
 
 import com.ctre.CANTalon;
+import com.ctre.CANTalon.FeedbackDevice;
 import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.cscore.CvSink;
@@ -18,11 +21,13 @@ import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.VictorSP;
+import edu.wpi.first.wpilibj.hal.I2CJNI;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 	//  drive system test  //
@@ -47,7 +52,6 @@ public class Robot extends IterativeRobot
 	
 	Encoder leftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
 	Encoder rightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
-	Encoder shooterEncoder = new Encoder(new DigitalInput(0), new DigitalInput(1));
 	
 	RobotDrive myDrive = new RobotDrive(leftDrive1, leftDrive2, rightDrive1, rightDrive2);
 	
@@ -62,36 +66,58 @@ public class Robot extends IterativeRobot
 	AnalogInput sensor = new AnalogInput(0);
 	AHRS gyro;
 	
+	//I2C i2cIOExpand = new I2C(I2C.Port.kOnboard, 0b0100000);
+	//I2C i2cIOExpand = new I2C(I2C.Port.kOnboard, 32);//32, 16, 64
+	I2C i2cIOExpand = new I2C(I2C.Port.kOnboard, 0x02);//0x20, 0x02
+	
 	Joystick leftStick = new Joystick(0);
 	Joystick rightStick = new Joystick(1);
 	Joystick operatorStick = new Joystick(2);
 	
-	Button shiftButton = new Button(rightStick, 1, Button.ButtonType.Toggle);
+	Button shiftButton = new Button(leftStick, 1, Button.ButtonType.Toggle);
 	Button intakeButton = new Button(operatorStick, 1, Button.ButtonType.Toggle);
 	Button gearWallButton = new Button(operatorStick, 2, Button.ButtonType.Toggle);
 	Button gearPushoutButton = new Button(operatorStick, 3, Button.ButtonType.Toggle);
 	Button gearDrapesButton = new Button(operatorStick, 4, Button.ButtonType.Toggle);
 	Button shooterHoodButton = new Button(operatorStick, 5, Button.ButtonType.Toggle);
+	//Button i2cButton = new Button(leftStick, 1, Button.ButtonType.Toggle);
+	
+	Button quickTurnButtonLeft = new Button(rightStick, 5, Button.ButtonType.Hold);
+	Button quickTurnButtonRight = new Button(rightStick, 6, Button.ButtonType.Hold);
 	
 	Button shooterButton = new Button(operatorStick, 6, Button.ButtonType.Hold);
 	Button pickupButton = new Button(operatorStick, 7, Button.ButtonType.Hold);
-	Button climberButton = new Button(operatorStick, 8, Button.ButtonType.Hold);
-	Button feederButton = new Button(operatorStick, 9, Button.ButtonType.Hold);
+	Button climberButton = new Button(operatorStick, 9, Button.ButtonType.Hold);
+	Button feederButton = new Button(operatorStick, 8, Button.ButtonType.Hold);
 	Button unjammerButton = new Button(operatorStick, 10, Button.ButtonType.Hold);
 
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
 	public static double driveTranDistancePerPulse = (3.50 * 3.1415) / (360.00);
 	public static double shooterDistancePerPulse = (3.50 * 3.1415) / (1.00 * 1.00) * (1.00);
 
+	boolean wheelDrive = true;
+	
 	public void robotInit()
 	{
 		leftDrive1.setSafetyEnabled(false);
 		leftDrive2.setSafetyEnabled(false);
 		rightDrive1.setSafetyEnabled(false);
 		rightDrive2.setSafetyEnabled(false);
-		SmartDashboard.putBoolean("wheelDrive", false);
+		
+		pickup.setSafetyEnabled(false);
+		feeder.setSafetyEnabled(false);
+		shooter1.setSafetyEnabled(false);
+		shooter2.setSafetyEnabled(false);
+		
+		climber1.setSafetyEnabled(false);
+		climber2.setSafetyEnabled(false);
+		
+		unjammer.setSafetyEnabled(false);
+		
+		wheelDrive = true;
+		SmartDashboard.putBoolean("wheelDrive", true);
 
-		 try {
+		try {
 				/***********************************************************************
 				 * navX-MXP:
 				 * - Communication via RoboRIO MXP (SPI, I2C, TTL UART) and USB.            
@@ -104,66 +130,70 @@ public class Robot extends IterativeRobot
 				 * Multiple navX-model devices on a single robot are supported.
 				 ************************************************************************/
 	            gyro = new AHRS(SPI.Port.kMXP);
-	        } catch (RuntimeException ex ) {
-	        }
-		 gyro.reset();
+        }
+		catch (RuntimeException ex ) {
+        }
+		
+		gyro.reset();
 		leftDriveEncoder.setReverseDirection(true);
 		leftDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
 		leftDriveEncoder.reset();
 		rightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
 		rightDriveEncoder.reset();
-    	shooterEncoder.setDistancePerPulse(shooterDistancePerPulse);
-    	shooterEncoder.reset();
+		shooter2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
+		shooter2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
+		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
+		climber2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
     	
     	shifter.set(DoubleSolenoid.Value.kForward);
     	intake.set(DoubleSolenoid.Value.kReverse);
     	gearWall.set(DoubleSolenoid.Value.kReverse);
-    	gearPushout.set(DoubleSolenoid.Value.kReverse);
+    	gearPushout.set(DoubleSolenoid.Value.kForward);
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
-    	shooterHood.set(DoubleSolenoid.Value.kForward);
+    	shooterHood.set(DoubleSolenoid.Value.kReverse);
 		
-    	visionThread = new Thread(() -> 
-    	{
-    		UsbCamera camera = new UsbCamera("camera", 0);
-			UsbCamera camera2 = new UsbCamera("camera2", 1);
-    		CvSink Cvcamera = new CvSink("cam0");
-    		CvSink Cvcamera2 = new CvSink("cam1");
-    		Mat mat = new Mat();
-    		Cvcamera.grabFrame(mat);
-    		mat.get(0, 0);
-    		Cvcamera2.grabFrame(mat);
-    		mat.get(0, 0);
-			CameraServer.getInstance().addCamera(camera);
-			MjpegServer server = CameraServer.getInstance().addServer("camera");
-			server.setSource(camera);
-			
-			
-			while (!Thread.interrupted()) {
-				if (rightStick.getRawButton(2) && (!cameraButtonHeld))
-				{
-					cameraButtonHeld = true;
-					if (camera1on)
-					{
-						server.setSource(camera2);
-						camera1on = false;
-					}
-					else
-					{
-						server.setSource(camera);
-						camera1on = true;
-					}
-				}
-				else if (!rightStick.getRawButton(2) && (cameraButtonHeld))
-				{
-					cameraButtonHeld = false;
-				}
-				
-			}
-			});    	
-    	//CameraServer.getInstance().startAutomaticCapture();
-
-		visionThread.setDaemon(true);
-		visionThread.start();
+//    	visionThread = new Thread(() -> 
+//    	{
+//    		UsbCamera camera = new UsbCamera("camera", 0);
+//			UsbCamera camera2 = new UsbCamera("camera2", 1);
+//    		CvSink Cvcamera = new CvSink("cam0");
+//    		CvSink Cvcamera2 = new CvSink("cam1");
+//    		Mat mat = new Mat();
+//    		Cvcamera.grabFrame(mat);
+//    		mat.get(0, 0);
+//    		Cvcamera2.grabFrame(mat);
+//    		mat.get(0, 0);
+//			CameraServer.getInstance().addCamera(camera);
+//			MjpegServer server = CameraServer.getInstance().addServer("camera");
+//			server.setSource(camera);
+//			
+//			
+//			while (!Thread.interrupted()) {
+//				if (rightStick.getRawButton(2) && (!cameraButtonHeld))
+//				{
+//					cameraButtonHeld = true;
+//					if (camera1on)
+//					{
+//						server.setSource(camera2);
+//						camera1on = false;
+//					}
+//					else
+//					{
+//						server.setSource(camera);
+//						camera1on = true;
+//					}
+//				}
+//				else if (!rightStick.getRawButton(2) && (cameraButtonHeld))
+//				{
+//					cameraButtonHeld = false;
+//				}
+//				
+//			}
+//			});    	
+//    	//CameraServer.getInstance().startAutomaticCapture();
+//
+//		visionThread.setDaemon(true);
+//		visionThread.start();
 		
 	}
 
@@ -174,20 +204,13 @@ public class Robot extends IterativeRobot
 
 	public void autonomousPeriodic()
 	{
-		
+		writeDashboard();
 	}
 
 	public void teleopInit()
 	{
 
 	}
-	
-	boolean shifted = false;
-	boolean intakeOut = false;
-	boolean gearWallUp = false;
-	boolean gearPushin = false;
-	boolean gearDraped = false;
-	boolean shooterHoodUp = false;
 	
 	public void teleopPeriodic()
 	{
@@ -197,141 +220,119 @@ public class Robot extends IterativeRobot
 		}
 		else
 		{
-			double speed = rightStick.getRawAxis(1);
-			double direction = leftStick.getRawAxis(0);
-			if (speed > -0.2 && speed < 0.2)
+			double rightValue = leftStick.getY();
+			double leftValue = leftStick.getY();			
+			double rightX = rightStick.getX();
+			
+			if (quickTurnButtonLeft.isPressed() || quickTurnButtonRight.isPressed())
 			{
-				speed = 0.0;
+				rightValue = rightX;
+				leftValue = -rightX;
 			}
-				if (direction < -0.2)
+			else
+			{
+				if (rightX < -0.05) 
 				{
-					rightDrive1.set(-speed);
-					rightDrive2.set(-speed);
-					leftDrive1.set(0.0);
-					leftDrive2.set(0.0);
-					if (leftStick.getRawButton(5))
-					{
-						leftDrive1.set(-speed);
-						leftDrive2.set(-speed);
-					}
-					else
-					{
-						leftDrive1.set(0.0);
-						leftDrive2.set(0.0);
-					}
+					leftValue = leftValue * (1+rightX);
 				}
-				else if (direction > 0.2)
+				else if (rightX > 0.05)
 				{
-					leftDrive1.set(speed);
-					leftDrive2.set(speed);
-					if (leftStick.getRawButton(5))
-					{
-						rightDrive1.set(speed);
-						rightDrive2.set(speed);
-					}
-					else
-					{
-						rightDrive1.set(0.0);
-						rightDrive2.set(0.0);
-					}
+					rightValue = rightValue * (1 - rightX);
 				}
-				else
-				{
-					rightDrive1.set(-speed);
-					rightDrive2.set(-speed);
-					leftDrive1.set(speed);
-					leftDrive2.set(speed);
-				}
+			}
+			
+			myDrive.tankDrive(leftValue, rightValue);
 		}
 	
 		if (shiftButton.isPressed()) //Toggle button
 		{
-			if (shifted)
+			if (shifter.get() == DoubleSolenoid.Value.kForward)
 			{
 				shifter.set(DoubleSolenoid.Value.kReverse);
-				shifted = false;
 			}
 			else
 			{
 				shifter.set(DoubleSolenoid.Value.kForward);
-				shifted = true;
 			}
 		}
 		
 		if (intakeButton.isPressed())
-		{	
-			if (intakeOut)
+		{
+			if (intake.get() == DoubleSolenoid.Value.kForward)
 			{
 				intake.set(DoubleSolenoid.Value.kReverse);
-				intakeOut = false;
 			}
 			else
 			{
 				intake.set(DoubleSolenoid.Value.kForward);
-				intakeOut = true;
 			}
 		}
 		
 		if (gearWallButton.isPressed())
-		{	
-			if (gearWallUp)
+		{
+			if (gearWall.get() == DoubleSolenoid.Value.kForward)
 			{
 				gearWall.set(DoubleSolenoid.Value.kReverse);
-				gearWallUp = false;
 			}
 			else
 			{
 				gearWall.set(DoubleSolenoid.Value.kForward);
-				gearWallUp = true;
 			}
 		}
 
 		if (gearPushoutButton.isPressed())
 		{	
-			if (gearPushin)
+			if (gearPushout.get() == DoubleSolenoid.Value.kForward)
 			{
 				gearPushout.set(DoubleSolenoid.Value.kReverse);
-				gearPushin = false;
 			}
 			else
 			{
 				gearPushout.set(DoubleSolenoid.Value.kForward);
-				gearPushin = true;
 			}
 		}
 
 		if (gearDrapesButton.isPressed())
 		{	
-			if (gearDraped)
+			if (gearDrapes.get() == DoubleSolenoid.Value.kForward)
 			{
 				gearDrapes.set(DoubleSolenoid.Value.kReverse);
-				gearDraped = false;
 			}
 			else
 			{
 				gearDrapes.set(DoubleSolenoid.Value.kForward);
-				gearDraped = true;
 			}
 		}
 
 		if (shooterHoodButton.isPressed())
 		{	
-			if (shooterHoodUp)
+			if (shooterHood.get() == DoubleSolenoid.Value.kForward)
 			{
 				shooterHood.set(DoubleSolenoid.Value.kReverse);
-				shooterHoodUp = false;
 			}
 			else
 			{
 				shooterHood.set(DoubleSolenoid.Value.kForward);
-				shooterHoodUp = true;
 			}
 		}
+		
+		//if(i2cButton.isPressed()) {
+//			byte a[] = {(byte)0};
+			//byte data[] = {'C', (byte)150, 8, 0, (byte)255, 0, 2, 15, 2, 0, 0};
+			//byte data[] = {0, 0, 0, 0};
+			//SmartDashboard.putBoolean("io expand", i2cIOExpand.writeBulk(data));
+			//ByteBuffer dataToSendBuffer = ByteBuffer.allocateDirect(data.length);
+		    //dataToSendBuffer.put(data);
+			
+			//int sent = I2CJNI.i2CWrite((byte) I2C.Port.kOnboard.value, (byte) 0x20, dataToSendBuffer, (byte) data.length);
+			//SmartDashboard.putNumber("i2c sent, 14", sent);
+			//< data.length;
+		//}
 
 		if (shooterButton.isPressed())
 		{
-			shooter1.set(1.0);
-			shooter2.set(-1.0);
+			shooter1.set(-0.75);
+			shooter2.set(+0.75);
 		}
 		else
 		{
@@ -360,7 +361,7 @@ public class Robot extends IterativeRobot
 		
 		if (feederButton.isPressed())
 		{
-			feeder.set(1.0);
+			feeder.set(-1.0);
 		}
 		else
 		{
@@ -376,14 +377,12 @@ public class Robot extends IterativeRobot
 			unjammer.set(0.0);
 		}
 		
-		ButtonFeeder.INSTANCE.feed();
-		
 		writeDashboard();
-		
-		
 	}
 	
-	boolean wheelDrive = false;
+	public void disabledPeriodic() {
+		writeDashboard();
+	}
 	
 	public void writeDashboard()
 	{
@@ -391,8 +390,13 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("gyro", gyro.getAngle());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
-		SmartDashboard.putNumber("shooterEncoder", shooterEncoder.getRate());
-		wheelDrive = SmartDashboard.getBoolean("wheelDrive", false);
+		//SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
+		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
+		SmartDashboard.putBoolean("Pickup Out", intake.get() == DoubleSolenoid.Value.kForward);
+		SmartDashboard.putBoolean("Wall Up", gearWall.get() == DoubleSolenoid.Value.kForward);
+		SmartDashboard.putBoolean("Gear Draps Up", gearDrapes.get() == DoubleSolenoid.Value.kForward);
+		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
+		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 	}
 	
 }
