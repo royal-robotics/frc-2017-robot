@@ -10,11 +10,8 @@ import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.MjpegServer;
-//import edu.wpi.cscore.MjpegServer;
-//import edu.wpi.cscore.UsbCamera;
 import edu.wpi.cscore.UsbCamera;
 
-//import com.ctre.CANTalon;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.CameraServer;
@@ -36,6 +33,7 @@ public class Robot extends IterativeRobot
 	Thread visionThread;
 	boolean cameraButtonHeld = false;
 	boolean camera1on = false;
+	int testCounter = 0;
 	
 	VictorSP leftDrive1 = new VictorSP(0);
 	VictorSP leftDrive2 = new VictorSP(1);
@@ -97,8 +95,16 @@ public class Robot extends IterativeRobot
 
 	boolean wheelDrive = true;
 	
+//	UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+	//UsbCamera camera = new UsbCamera("cam2", 0);
+//	UsbCamera camera2 = new UsbCamera("camera2", 1);
+//	CvSink Cvcamera = new CvSink("cam2");
+//	CvSink Cvcamera2 = new CvSink("cam1");
+//	MjpegServer server = CameraServer.getInstance().addServer("camera");
+//	Mat mat = new Mat();
+		
 	public void robotInit()
-	{
+	{		
 		leftDrive1.setSafetyEnabled(false);
 		leftDrive2.setSafetyEnabled(false);
 		rightDrive1.setSafetyEnabled(false);
@@ -117,29 +123,21 @@ public class Robot extends IterativeRobot
 		wheelDrive = true;
 		SmartDashboard.putBoolean("wheelDrive", true);
 
-		try {
-				/***********************************************************************
-				 * navX-MXP:
-				 * - Communication via RoboRIO MXP (SPI, I2C, TTL UART) and USB.            
-				 * - See http://navx-mxp.kauailabs.com/guidance/selecting-an-interface.
-				 * 
-				 * navX-Micro:
-				 * - Communication via I2C (RoboRIO MXP or Onboard) and USB.
-				 * - See http://navx-micro.kauailabs.com/guidance/selecting-an-interface.
-				 * 
-				 * Multiple navX-model devices on a single robot are supported.
-				 ************************************************************************/
-	            gyro = new AHRS(SPI.Port.kMXP);
-        }
-		catch (RuntimeException ex ) {
-        }
+		try 
+		{
+			gyro = new AHRS(SPI.Port.kMXP);
+			gyro.reset();
+		}
+		catch (RuntimeException ex )
+		{			
+		}
 		
-		gyro.reset();
 		leftDriveEncoder.setReverseDirection(true);
 		leftDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
 		leftDriveEncoder.reset();
 		rightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
 		rightDriveEncoder.reset();
+		
 		shooter2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		shooter2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
 		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
@@ -151,67 +149,61 @@ public class Robot extends IterativeRobot
     	gearPushout.set(DoubleSolenoid.Value.kForward);
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
     	shooterHood.set(DoubleSolenoid.Value.kReverse);
-		
-//    	visionThread = new Thread(() -> 
-//    	{
-//    		UsbCamera camera = new UsbCamera("camera", 0);
-//			UsbCamera camera2 = new UsbCamera("camera2", 1);
-//    		CvSink Cvcamera = new CvSink("cam0");
-//    		CvSink Cvcamera2 = new CvSink("cam1");
-//    		Mat mat = new Mat();
-//    		Cvcamera.grabFrame(mat);
-//    		mat.get(0, 0);
-//    		Cvcamera2.grabFrame(mat);
-//    		mat.get(0, 0);
-//			CameraServer.getInstance().addCamera(camera);
-//			MjpegServer server = CameraServer.getInstance().addServer("camera");
-//			server.setSource(camera);
-//			
-//			
-//			while (!Thread.interrupted()) {
-//				if (rightStick.getRawButton(2) && (!cameraButtonHeld))
-//				{
-//					cameraButtonHeld = true;
-//					if (camera1on)
-//					{
-//						server.setSource(camera2);
-//						camera1on = false;
-//					}
-//					else
-//					{
-//						server.setSource(camera);
-//						camera1on = true;
-//					}
-//				}
-//				else if (!rightStick.getRawButton(2) && (cameraButtonHeld))
-//				{
-//					cameraButtonHeld = false;
-//				}
-//				
-//			}
-//			});    	
-//    	//CameraServer.getInstance().startAutomaticCapture();
-//
-//		visionThread.setDaemon(true);
+//    	visionThread = new Thread(() -> {
+////    		UsbCamera camera = new UsbCamera("cam2", 2);
+////    		MjpegServer server = CameraServer.getInstance().addServer("cam2");
+////    		server.setSource(camera);
+////    		CameraServer.getInstance().startAutomaticCapture(camera);
+//    		testCounter = 100;
+//    		while (!Thread.interrupted()) {
+//    			testCounter++;
+//    		}
+//    	});
+    	
+    	//TODO: RE-IMAGE THE PRACTICE RIO
+    	//		THIS LINE SHOULD WORK BUT IT DOESN'T
+    	//CameraServer.getInstance().startAutomaticCapture();
+    	
+//    	UsbCamera camera = new UsbCamera("cam2", 0);
+//    	visionThread.setDaemon(true);
 //		visionThread.start();
-		
+    	//camera = CameraServer.getInstance().startAutomaticCapture();
+    	
+//    	Cvcamera.grabFrame(mat);
+//		mat.get(0, 0);
+//		Cvcamera2.grabFrame(mat);
+//		mat.get(0, 0);
+//		CameraServer.getInstance().addCamera(camera);
+//		server.setSource(camera);
 	}
 
+	/**
+	 * 
+	 */
 	public void autonomousInit()
 	{
 		
 	}
 
+	/**
+	 * 
+	 */
 	public void autonomousPeriodic()
 	{
 		writeDashboard();
 	}
 
+	/**
+	 * 
+	 */
 	public void teleopInit()
 	{
 
 	}
 	
+	/**
+	 * 
+	 */
 	public void teleopPeriodic()
 	{
 		if (!wheelDrive)
@@ -378,10 +370,32 @@ public class Robot extends IterativeRobot
 		}
 		
 		writeDashboard();
+		//camera();
 	}
 	
 	public void disabledPeriodic() {
 		writeDashboard();
+	}
+	
+	private void camera() {
+//		if (leftStick.getRawButton(2) && (!cameraButtonHeld))
+//		{
+//			cameraButtonHeld = true;
+//			if (camera1on)
+//			{
+//				server.setSource(camera2);
+//				camera1on = false;
+//			}
+//			else
+//			{
+//				server.setSource(camera);
+//				camera1on = true;
+//			}
+//		}
+//		else if (!rightStick.getRawButton(2) && (cameraButtonHeld))
+//		{
+//			cameraButtonHeld = false;
+//		}
 	}
 	
 	public void writeDashboard()
@@ -390,13 +404,15 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("gyro", gyro.getAngle());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
-		//SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
+		//cmdSmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
 		SmartDashboard.putBoolean("Pickup Out", intake.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Wall Up", gearWall.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Draps Up", gearDrapes.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
+		
+		SmartDashboard.putNumber("DOES THIS EVEN WORK!?!", testCounter);
 	}
 	
 }

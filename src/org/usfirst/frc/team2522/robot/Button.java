@@ -18,12 +18,6 @@ public class Button {
 		this.buttonId = buttonId;
 		this.type = type;
 		this.previousValue = stick.getRawButton(buttonId);
-		
-		//ButtonFeeder.INSTANCE.addButton(this);
-	}
-	
-	public void feed() {
-		//previousValue = stick.getRawButton(buttonId);
 	}
 	
 	public boolean isPressed() {

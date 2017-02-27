@@ -1,3 +1,5 @@
+package org.usfirst.frc.team2522.robot;
+
 import org.opencv.core.CvType;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
