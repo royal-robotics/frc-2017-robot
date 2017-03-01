@@ -1,17 +1,20 @@
 package org.usfirst.frc.team2522.robot;
 
+import java.io.*;
 import java.nio.ByteBuffer;
 
 import org.opencv.core.Mat;
+import org.usfirst.frc.team2522.robot.Button.ButtonType;
 
 import com.ctre.CANTalon;
 import com.ctre.CANTalon.FeedbackDevice;
 import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.cscore.CvSink;
+import edu.wpi.cscore.CvSource;
 import edu.wpi.cscore.MjpegServer;
 import edu.wpi.cscore.UsbCamera;
-
+import edu.wpi.cscore.VideoSink;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.CameraServer;
@@ -23,6 +26,7 @@ import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.hal.I2CJNI;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -31,9 +35,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Robot extends IterativeRobot
 {
 	Thread visionThread;
-	boolean cameraButtonHeld = false;
-	boolean camera1on = false;
-	int testCounter = 0;
 	
 	VictorSP leftDrive1 = new VictorSP(0);
 	VictorSP leftDrive2 = new VictorSP(1);
@@ -56,8 +57,7 @@ public class Robot extends IterativeRobot
 	DoubleSolenoid shifter = new DoubleSolenoid(0, 3, 4);
 	DoubleSolenoid intake = new DoubleSolenoid(0, 2, 5);
 	DoubleSolenoid gearWall = new DoubleSolenoid(0, 1, 6);
-	DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);
-	
+	DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);	
 	DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
 	DoubleSolenoid shooterHood = new DoubleSolenoid(1, 2, 5);
 		
@@ -73,38 +73,49 @@ public class Robot extends IterativeRobot
 	Joystick operatorStick = new Joystick(2);
 	
 	Button shiftButton = new Button(leftStick, 1, Button.ButtonType.Toggle);
+	Button cameraLowButton = new Button(leftStick, 2, Button.ButtonType.Hold);
+
+	// Debug Buttons
+	Button i2cButton = new Button(leftStick, 11, Button.ButtonType.Toggle);
+	Button motionRecordButton = new Button(leftStick, 7, Button.ButtonType.Hold);
+	
+	Button quickTurnButtonLeft = new Button(rightStick, 5, Button.ButtonType.Hold);
+	Button quickTurnButtonRight = new Button(rightStick, 6, Button.ButtonType.Hold);
+
 	Button intakeButton = new Button(operatorStick, 1, Button.ButtonType.Toggle);
 	Button gearWallButton = new Button(operatorStick, 2, Button.ButtonType.Toggle);
 	Button gearPushoutButton = new Button(operatorStick, 3, Button.ButtonType.Toggle);
 	Button gearDrapesButton = new Button(operatorStick, 4, Button.ButtonType.Toggle);
 	Button shooterHoodButton = new Button(operatorStick, 5, Button.ButtonType.Toggle);
-	//Button i2cButton = new Button(leftStick, 1, Button.ButtonType.Toggle);
-	
-	Button quickTurnButtonLeft = new Button(rightStick, 5, Button.ButtonType.Hold);
-	Button quickTurnButtonRight = new Button(rightStick, 6, Button.ButtonType.Hold);
 	
 	Button shooterButton = new Button(operatorStick, 6, Button.ButtonType.Hold);
 	Button pickupButton = new Button(operatorStick, 7, Button.ButtonType.Hold);
 	Button climberButton = new Button(operatorStick, 9, Button.ButtonType.Hold);
 	Button feederButton = new Button(operatorStick, 8, Button.ButtonType.Hold);
 	Button unjammerButton = new Button(operatorStick, 10, Button.ButtonType.Hold);
-
+	
+	
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
 	public static double driveTranDistancePerPulse = (3.50 * 3.1415) / (360.00);
 	public static double shooterDistancePerPulse = (3.50 * 3.1415) / (1.00 * 1.00) * (1.00);
 
 	boolean wheelDrive = true;
 	
-//	UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-	//UsbCamera camera = new UsbCamera("cam2", 0);
-//	UsbCamera camera2 = new UsbCamera("camera2", 1);
-//	CvSink Cvcamera = new CvSink("cam2");
-//	CvSink Cvcamera2 = new CvSink("cam1");
+	PrintStream ps = null;
+	Timer motionProfileTimer = new Timer();
+	
+	CameraServer cameraServer = CameraServer.getInstance();
+	CvSource  cameraStream = CameraServer.getInstance().putVideo("camera", 640, 480);
+	UsbCamera cameraHigh = null;
+	UsbCamera cameraLow = null;
+	CvSink cameraHighSink = null;
+	CvSink cameraLowSink = null;
 //	MjpegServer server = CameraServer.getInstance().addServer("camera");
 //	Mat mat = new Mat();
 		
 	public void robotInit()
 	{		
+		myDrive.setSafetyEnabled(false);
 		leftDrive1.setSafetyEnabled(false);
 		leftDrive2.setSafetyEnabled(false);
 		rightDrive1.setSafetyEnabled(false);
@@ -150,31 +161,45 @@ public class Robot extends IterativeRobot
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
     	shooterHood.set(DoubleSolenoid.Value.kReverse);
 //    	visionThread = new Thread(() -> {
-////    		UsbCamera camera = new UsbCamera("cam2", 2);
-////    		MjpegServer server = CameraServer.getInstance().addServer("cam2");
+////    		UsbCamera camera = new UsbCamera("cam0", 0);
+////    		MjpegServer server = CameraServer.getInstance().addServer("cam0");
 ////    		server.setSource(camera);
 ////    		CameraServer.getInstance().startAutomaticCapture(camera);
-//    		testCounter = 100;
 //    		while (!Thread.interrupted()) {
-//    			testCounter++;
 //    		}
 //    	});
+
+		cameraHigh = new UsbCamera("cam0", 0);
+		if (cameraHigh != null) cameraHigh.setResolution(640, 480);
     	
-    	//TODO: RE-IMAGE THE PRACTICE RIO
-    	//		THIS LINE SHOULD WORK BUT IT DOESN'T
-    	//CameraServer.getInstance().startAutomaticCapture();
+//	   	cameraLow = new UsbCamera("cam1", 1);
+    	if (cameraLow != null) cameraLow.setResolution(640, 480);
     	
+    	if (cameraHigh != null)
+    	{
+    		cameraServer.startAutomaticCapture(cameraHigh);
+    	}
+    	    	
 //    	UsbCamera camera = new UsbCamera("cam2", 0);
 //    	visionThread.setDaemon(true);
 //		visionThread.start();
-    	//camera = CameraServer.getInstance().startAutomaticCapture();
+    	//CameraServer.getInstance().startAutomaticCapture(cameraHigh);
     	
 //    	Cvcamera.grabFrame(mat);
 //		mat.get(0, 0);
 //		Cvcamera2.grabFrame(mat);
 //		mat.get(0, 0);
-//		CameraServer.getInstance().addCamera(camera);
+		//CameraServer.getInstance().addCamera(camera);
+		//CameraServer.getInstance().
 //		server.setSource(camera);
+	}
+
+	/**
+	 * 
+	 */
+	public void robotPeriodic()
+	{
+		writeDashboard();
 	}
 
 	/**
@@ -190,7 +215,23 @@ public class Robot extends IterativeRobot
 	 */
 	public void autonomousPeriodic()
 	{
-		writeDashboard();
+	
+	}
+	
+	/**
+	 * 
+	 */
+	public void disabledInit()
+	{
+		
+	}
+	
+	/**
+	 * 
+	 */
+	public void disabledPeriodic()
+	{
+	
 	}
 
 	/**
@@ -234,6 +275,62 @@ public class Robot extends IterativeRobot
 			}
 			
 			myDrive.tankDrive(leftValue, rightValue);
+		}
+		
+		if (cameraLowButton.isPressed())
+		{
+		
+		}
+		else
+		{
+
+		}
+		
+		if (motionRecordButton.isPressed())
+		{
+			if (ps == null)
+			{
+				File f = new File("/home/lvuser/MotionProfile0.txt");
+				for(int i = 0;f.exists();i++)
+				{
+					f = new File("/home/lvuser/MotionProfile" + i + ".txt");
+				}
+				try 
+				{
+					ps = new PrintStream(f);
+				}
+				catch(IOException e)
+				{
+					ps = null;
+					e.printStackTrace();
+				}
+				
+				System.out.println("MotionRecording started: " + f.getName());
+				motionProfileTimer.reset();
+				motionProfileTimer.start();
+				
+				gyro.reset();
+				leftDriveEncoder.reset();
+			}
+			
+			ps.println(String.valueOf(motionProfileTimer.get()) + "," + 
+					   String.valueOf(leftDrive1.get()) + "," +
+					   String.valueOf(leftDriveEncoder.getDistance()) + "," +
+					   String.valueOf(gyro.getAngle()) + "," +
+					   String.valueOf(gyro.getVelocityX()) + "," +
+					   String.valueOf(gyro.getVelocityY()) + "," +
+					   String.valueOf(gyro.getVelocityZ())
+			);
+		}
+		else
+		{
+			if (ps != null)
+			{
+				ps.close();
+				ps = null;
+				motionProfileTimer.stop();
+				motionProfileTimer.reset();
+			}
 		}
 	
 		if (shiftButton.isPressed()) //Toggle button
@@ -369,14 +466,12 @@ public class Robot extends IterativeRobot
 			unjammer.set(0.0);
 		}
 		
-		writeDashboard();
 		//camera();
 	}
 	
-	public void disabledPeriodic() {
-		writeDashboard();
-	}
-	
+	/**
+	 * 
+	 */
 	private void camera() {
 //		if (leftStick.getRawButton(2) && (!cameraButtonHeld))
 //		{
@@ -404,6 +499,8 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("gyro", gyro.getAngle());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
+		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
+
 		//cmdSmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
 		SmartDashboard.putBoolean("Pickup Out", intake.get() == DoubleSolenoid.Value.kForward);
@@ -412,7 +509,32 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 		
-		SmartDashboard.putNumber("DOES THIS EVEN WORK!?!", testCounter);
+		double exposure = SmartDashboard.getNumber("Camera Exposure", -1.0);
+		SmartDashboard.putNumber("Camera Exposure", exposure);
+		double whiteBalance = SmartDashboard.getNumber("Camera WB", -1.0);
+		SmartDashboard.putNumber("Camera WB", whiteBalance);
+		if (exposure < 0.0)
+		{
+			if (cameraHigh != null) cameraHigh.setExposureAuto();
+			if (cameraLow != null) cameraLow.setExposureAuto();
+		}
+		else
+		{
+			if (cameraHigh != null) cameraHigh.setExposureManual((int)exposure);
+			if (cameraLow != null) cameraLow.setExposureManual((int)exposure);
+		}
+		
+		if (whiteBalance < 0.0)
+		{
+			if (cameraHigh != null) cameraHigh.setWhiteBalanceAuto();
+			if (cameraLow != null) cameraLow.setWhiteBalanceAuto();
+		}
+		else
+		{
+			if (cameraHigh != null) cameraHigh.setWhiteBalanceManual((int)whiteBalance);
+			if (cameraLow != null) cameraLow.setWhiteBalanceManual((int)whiteBalance);
+		}
+		
 	}
 	
 }

@@ -17,7 +17,7 @@ public class Button {
 		this.stick = stick;
 		this.buttonId = buttonId;
 		this.type = type;
-		this.previousValue = stick.getRawButton(buttonId);
+		this.previousValue = false;
 	}
 	
 	public boolean isPressed() {
