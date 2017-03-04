@@ -177,6 +177,7 @@ public class Robot extends IterativeRobot
     	
     	if (cameraHigh != null)
     	{
+    		cameraServer.addCamera(cameraHigh);
     		cameraServer.startAutomaticCapture(cameraHigh);
     	}
     	    	
@@ -493,6 +494,10 @@ public class Robot extends IterativeRobot
 //		}
 	}
 	
+	
+	double currentExposure = -99.0;
+	double currentWhiteBalance = -99.0;
+	
 	public void writeDashboard()
 	{
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
@@ -509,30 +514,36 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 		
-		double exposure = SmartDashboard.getNumber("Camera Exposure", -1.0);
-		SmartDashboard.putNumber("Camera Exposure", exposure);
-		double whiteBalance = SmartDashboard.getNumber("Camera WB", -1.0);
-		SmartDashboard.putNumber("Camera WB", whiteBalance);
-		if (exposure < 0.0)
+		double exposure = SmartDashboard.getNumber("Camera Exposure", -3.0);
+		if (exposure != currentExposure)
 		{
-			if (cameraHigh != null) cameraHigh.setExposureAuto();
-			if (cameraLow != null) cameraLow.setExposureAuto();
-		}
-		else
-		{
-			if (cameraHigh != null) cameraHigh.setExposureManual((int)exposure);
-			if (cameraLow != null) cameraLow.setExposureManual((int)exposure);
+			SmartDashboard.putNumber("Camera Exposure", exposure);
+			if (exposure < -2.0)
+			{
+				if (cameraHigh != null) cameraHigh.setExposureAuto();
+				if (cameraLow != null) cameraLow.setExposureAuto();
+			}
+			else
+			{
+				if (cameraHigh != null) cameraHigh.setExposureManual((int)exposure);
+				if (cameraLow != null) cameraLow.setExposureManual((int)exposure);
+			}
 		}
 		
-		if (whiteBalance < 0.0)
+		double whiteBalance = SmartDashboard.getNumber("Camera WB", -3.0);
+		if (whiteBalance != currentWhiteBalance)
 		{
-			if (cameraHigh != null) cameraHigh.setWhiteBalanceAuto();
-			if (cameraLow != null) cameraLow.setWhiteBalanceAuto();
-		}
-		else
-		{
-			if (cameraHigh != null) cameraHigh.setWhiteBalanceManual((int)whiteBalance);
-			if (cameraLow != null) cameraLow.setWhiteBalanceManual((int)whiteBalance);
+			SmartDashboard.putNumber("Camera WB", whiteBalance);
+			if (whiteBalance < -2.0)
+			{
+				if (cameraHigh != null) cameraHigh.setWhiteBalanceAuto();
+				if (cameraLow != null) cameraLow.setWhiteBalanceAuto();
+			}
+			else
+			{
+				if (cameraHigh != null) cameraHigh.setWhiteBalanceManual((int)whiteBalance);
+				if (cameraLow != null) cameraLow.setWhiteBalanceManual((int)whiteBalance);
+			}
 		}
 		
 	}
