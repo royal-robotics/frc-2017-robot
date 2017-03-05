@@ -2,9 +2,9 @@ package org.usfirst.frc.team2522.robot;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.sql.DriverPropertyInfo;
 
 import org.opencv.core.Mat;
-import org.usfirst.frc.team2522.robot.Button.ButtonType;
 
 import com.ctre.CANTalon;
 import com.ctre.CANTalon.FeedbackDevice;
@@ -34,7 +34,19 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 	//  drive system test  //
 public class Robot extends IterativeRobot
 {
+	public Timer robotTimer = new Timer();
+	private double lastTime = 0.0;
+	private double lastBearing = 0.0;
+	private double lastDistance = 0.0;
+	private double lastVelocity = 0.0;
+	private double lastAcceleration = 0.0;
+	private double driveStraightBearing = 0.0;
+	private double driveToStartDistance = 0.0;
+	
 	Thread visionThread;
+	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
+	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
+	
 	
 	VictorSP leftDrive1 = new VictorSP(0);
 	VictorSP leftDrive2 = new VictorSP(1);
@@ -47,7 +59,7 @@ public class Robot extends IterativeRobot
 	CANTalon feeder = new CANTalon(2);
 	CANTalon climber1 = new CANTalon(3);
 	CANTalon climber2 = new CANTalon(4);
-	CANTalon pickup = new CANTalon(5);
+	CANTalon intakeTalon = new CANTalon(5);
 	
 	Encoder leftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
 	Encoder rightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
@@ -55,7 +67,7 @@ public class Robot extends IterativeRobot
 	RobotDrive myDrive = new RobotDrive(leftDrive1, leftDrive2, rightDrive1, rightDrive2);
 	
 	DoubleSolenoid shifter = new DoubleSolenoid(0, 3, 4);
-	DoubleSolenoid intake = new DoubleSolenoid(0, 2, 5);
+	DoubleSolenoid intakeSolenoid = new DoubleSolenoid(0, 2, 5);
 	DoubleSolenoid gearWall = new DoubleSolenoid(0, 1, 6);
 	DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);	
 	DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
@@ -72,27 +84,36 @@ public class Robot extends IterativeRobot
 	Joystick rightStick = new Joystick(1);
 	Joystick operatorStick = new Joystick(2);
 	
-	Button shiftButton = new Button(leftStick, 1, Button.ButtonType.Toggle);
-	Button cameraLowButton = new Button(leftStick, 2, Button.ButtonType.Hold);
-
+	// Driver Controls
+	//
+	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
+	Button cameraLowButton = new Button(leftStick, 2, ButtonType.Hold);
+	Button driveStraightButton = new Button(leftStick, 3, ButtonType.Hold);
+	
 	// Debug Buttons
-	Button i2cButton = new Button(leftStick, 11, Button.ButtonType.Toggle);
-	Button motionRecordButton = new Button(leftStick, 7, Button.ButtonType.Hold);
-	
-	Button quickTurnButtonLeft = new Button(rightStick, 5, Button.ButtonType.Hold);
-	Button quickTurnButtonRight = new Button(rightStick, 6, Button.ButtonType.Hold);
+	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
+	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);	
 
-	Button intakeButton = new Button(operatorStick, 1, Button.ButtonType.Toggle);
-	Button gearWallButton = new Button(operatorStick, 2, Button.ButtonType.Toggle);
-	Button gearPushoutButton = new Button(operatorStick, 3, Button.ButtonType.Toggle);
-	Button gearDrapesButton = new Button(operatorStick, 4, Button.ButtonType.Toggle);
-	Button shooterHoodButton = new Button(operatorStick, 5, Button.ButtonType.Toggle);
+	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
+	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
+	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Toggle);
 	
-	Button shooterButton = new Button(operatorStick, 6, Button.ButtonType.Hold);
-	Button pickupButton = new Button(operatorStick, 7, Button.ButtonType.Hold);
-	Button climberButton = new Button(operatorStick, 9, Button.ButtonType.Hold);
-	Button feederButton = new Button(operatorStick, 8, Button.ButtonType.Hold);
-	Button unjammerButton = new Button(operatorStick, 10, Button.ButtonType.Hold);
+	// Operator Controls
+	//
+	POVButton intakeButton = new POVButton(operatorStick, 0, 0, ButtonType.Toggle);
+	POVButton gearPushoutButton = new POVButton(operatorStick,0, 90, ButtonType.Hold);
+	
+	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
+	Button gearWallDnButton = new Button(operatorStick, 2, ButtonType.Toggle);
+	Button gearWallUpButton = new Button(operatorStick, 4, ButtonType.Toggle);
+
+	Button shooterHoodButton = new Button(operatorStick, 5, ButtonType.Toggle);
+	Button feederButton = new Button(operatorStick, 6, ButtonType.Hold);
+	Button intakeRollerButton = new Button(operatorStick, 7, ButtonType.Hold);	
+	Button shooterButton = new Button(operatorStick, 8, ButtonType.Hold);
+	
+	Button climberButton = new Button(operatorStick, 9, ButtonType.Hold);
+	Button unjammerButton = new Button(operatorStick, 10, ButtonType.Hold);
 	
 	
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
@@ -115,13 +136,28 @@ public class Robot extends IterativeRobot
 		
 	public void robotInit()
 	{		
+		// Init Robot Timer
+		//
+		robotTimer.reset();
+		robotTimer.start();
+		lastTime = robotTimer.get();
+
+		// Init Drive Base Encoders
+		//
+		leftDriveEncoder.setReverseDirection(true);
+		leftDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
+		leftDriveEncoder.reset();
+		rightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
+		rightDriveEncoder.reset();
+				
+		
 		myDrive.setSafetyEnabled(false);
 		leftDrive1.setSafetyEnabled(false);
 		leftDrive2.setSafetyEnabled(false);
 		rightDrive1.setSafetyEnabled(false);
 		rightDrive2.setSafetyEnabled(false);
 		
-		pickup.setSafetyEnabled(false);
+		intakeTalon.setSafetyEnabled(false);
 		feeder.setSafetyEnabled(false);
 		shooter1.setSafetyEnabled(false);
 		shooter2.setSafetyEnabled(false);
@@ -143,19 +179,13 @@ public class Robot extends IterativeRobot
 		{			
 		}
 		
-		leftDriveEncoder.setReverseDirection(true);
-		leftDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
-		leftDriveEncoder.reset();
-		rightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
-		rightDriveEncoder.reset();
-		
 		shooter2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		shooter2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
 		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		climber2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
     	
     	shifter.set(DoubleSolenoid.Value.kForward);
-    	intake.set(DoubleSolenoid.Value.kReverse);
+    	intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
     	gearWall.set(DoubleSolenoid.Value.kReverse);
     	gearPushout.set(DoubleSolenoid.Value.kForward);
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
@@ -193,6 +223,17 @@ public class Robot extends IterativeRobot
 		//CameraServer.getInstance().addCamera(camera);
 		//CameraServer.getInstance().
 //		server.setSource(camera);
+
+		// Init Motion Control Values
+		//
+    	lastBearing = this.getCurrentBearing();    	
+		driveStraightBearing = lastBearing;
+    	
+		lastDistance = leftDriveEncoder.getDistance();
+		driveToStartDistance = lastDistance;
+		
+		lastVelocity = 0;
+		lastAcceleration = 0;
 	}
 
 	/**
@@ -200,7 +241,21 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
-		writeDashboard();
+		double currentTime = robotTimer.get();
+		double currentDistance = leftDriveEncoder.getDistance();
+		double currentBearing = this.getCurrentBearing();
+		
+		double t = currentTime - lastTime;
+		double d = currentDistance - lastDistance;
+		double v = d / t;
+		
+		this.lastAcceleration = (v - lastVelocity) / t;		
+		this.lastVelocity = v;
+		this.lastDistance = currentDistance;
+		this.lastBearing = currentBearing;
+		this.lastTime = currentTime;
+		
+		writeDashboard();		
 	}
 
 	/**
@@ -208,7 +263,9 @@ public class Robot extends IterativeRobot
 	 */
 	public void autonomousInit()
 	{
-		
+    	lastBearing = this.getCurrentBearing();    	
+		driveStraightBearing = lastBearing;
+		driveToStartDistance = this.getDistance();
 	}
 
 	/**
@@ -240,7 +297,9 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopInit()
 	{
-
+    	lastBearing = this.getCurrentBearing();    	
+		driveStraightBearing = lastBearing;
+		driveToStartDistance = this.getDistance();
 	}
 	
 	/**
@@ -248,34 +307,50 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopPeriodic()
 	{
-		if (!wheelDrive)
+		if (driveStraightButton.isPressed())
 		{
-			myDrive.tankDrive(leftStick, rightStick, true);
+			AutonomousController.driveTo(this, 0/*driveStraightBearing*/, 60.0/*driveToStartDistance + 60.0*/);
 		}
 		else
 		{
-			double rightValue = leftStick.getY();
-			double leftValue = leftStick.getY();			
-			double rightX = rightStick.getX();
-			
-			if (quickTurnButtonLeft.isPressed() || quickTurnButtonRight.isPressed())
+			driveToStartDistance = this.getDistance();
+			if (!wheelDrive)
 			{
-				rightValue = rightX;
-				leftValue = -rightX;
+				myDrive.tankDrive(leftStick, rightStick, true);
 			}
 			else
 			{
-				if (rightX < -0.05) 
+				double leftPower = leftStick.getY();			
+				double rightPower = leftPower;
+				double wheelValue = rightStick.getX();
+				
+				if (quickTurnButtonLeft.isPressed() || quickTurnButtonRight.isPressed())
 				{
-					leftValue = leftValue * (1+rightX);
+					rightPower = wheelValue;
+					leftPower = -wheelValue;
+					myDrive.tankDrive(leftPower, rightPower);
+					driveStraightBearing = this.getBearing();
 				}
-				else if (rightX > 0.05)
+				else
 				{
-					rightValue = rightValue * (1 - rightX);
+					if (wheelValue < -0.05) 
+					{
+						leftPower = leftPower * (1+wheelValue);
+						myDrive.tankDrive(leftPower, rightPower);
+						driveStraightBearing = this.getBearing();
+					}
+					else if (wheelValue > 0.05)
+					{
+						rightPower = rightPower * (1 - wheelValue);
+						myDrive.tankDrive(leftPower, rightPower);
+						driveStraightBearing = this.getBearing();
+					}
+					else
+					{
+						AutonomousController.driveForward(this, driveStraightBearing, -leftPower);
+					}
 				}
 			}
-			
-			myDrive.tankDrive(leftValue, rightValue);
 		}
 		
 		if (cameraLowButton.isPressed())
@@ -316,11 +391,10 @@ public class Robot extends IterativeRobot
 			
 			ps.println(String.valueOf(motionProfileTimer.get()) + "," + 
 					   String.valueOf(leftDrive1.get()) + "," +
-					   String.valueOf(leftDriveEncoder.getDistance()) + "," +
-					   String.valueOf(gyro.getAngle()) + "," +
-					   String.valueOf(gyro.getVelocityX()) + "," +
-					   String.valueOf(gyro.getVelocityY()) + "," +
-					   String.valueOf(gyro.getVelocityZ())
+					   String.valueOf(this.getBearing()) + "," +
+					   String.valueOf(this.getDistance()) + "," +
+					   String.valueOf(this.getVelocity()) + "," +
+					   String.valueOf(this.getAcceleration())
 			);
 		}
 		else
@@ -346,34 +420,44 @@ public class Robot extends IterativeRobot
 			}
 		}
 		
-		if (intakeButton.isPressed())
+		if (intakeButton.isPressed() || driverIntakeButton.isPressed())
 		{
-			if (intake.get() == DoubleSolenoid.Value.kForward)
+			if (intakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
 			{
-				intake.set(DoubleSolenoid.Value.kReverse);
+				intakeSolenoid.set(DoubleSolenoid.Value.kForward);
 			}
 			else
 			{
-				intake.set(DoubleSolenoid.Value.kForward);
+				intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 			}
 		}
 		
-		if (gearWallButton.isPressed())
+		if (intakeRollerButton.isPressed() || (intakeSolenoid.get() == DoubleSolenoid.Value.kForward))
 		{
-			if (gearWall.get() == DoubleSolenoid.Value.kForward)
-			{
-				gearWall.set(DoubleSolenoid.Value.kReverse);
-			}
-			else
-			{
-				gearWall.set(DoubleSolenoid.Value.kForward);
-			}
+			intakeTalon.set(1.0);
+		}
+		else
+		{
+			intakeTalon.set(0.0);
+		}
+		
+		if (gearWallUpButton.isPressed())
+		{
+			gearWall.set(DoubleSolenoid.Value.kForward);
+		}
+		
+		if (gearWallDnButton.isPressed())
+		{
+			gearWall.set(DoubleSolenoid.Value.kReverse);
 		}
 
-		if (gearPushoutButton.isPressed())
+		if (gearDrapesButton.isPressed())
 		{	
-			if (gearPushout.get() == DoubleSolenoid.Value.kForward)
-			{
+			gearDrapes.set(DoubleSolenoid.Value.kForward);
+			gearWall.set(DoubleSolenoid.Value.kReverse);
+
+			if (gearPushoutButton.isPressed())
+			{	
 				gearPushout.set(DoubleSolenoid.Value.kReverse);
 			}
 			else
@@ -381,17 +465,31 @@ public class Robot extends IterativeRobot
 				gearPushout.set(DoubleSolenoid.Value.kForward);
 			}
 		}
+		else
+		{
+			gearDrapes.set(DoubleSolenoid.Value.kReverse);
+			gearPushout.set(DoubleSolenoid.Value.kForward);
+		}
 
-		if (gearDrapesButton.isPressed())
-		{	
-			if (gearDrapes.get() == DoubleSolenoid.Value.kForward)
-			{
-				gearDrapes.set(DoubleSolenoid.Value.kReverse);
-			}
-			else
-			{
-				gearDrapes.set(DoubleSolenoid.Value.kForward);
-			}
+		
+		if (feederButton.isPressed())
+		{
+			feeder.set(-1.0);
+		}
+		else
+		{
+			feeder.set(0.0);
+		}
+
+		if (shooterButton.isPressed())
+		{
+			shooter1.set(-0.75);
+			shooter2.set(+0.75);
+		}
+		else
+		{
+			shooter1.set(0.0);
+			shooter2.set(0.0);
 		}
 
 		if (shooterHoodButton.isPressed())
@@ -419,24 +517,6 @@ public class Robot extends IterativeRobot
 			//< data.length;
 		//}
 
-		if (shooterButton.isPressed())
-		{
-			shooter1.set(-0.75);
-			shooter2.set(+0.75);
-		}
-		else
-		{
-			shooter1.set(0.0);
-			shooter2.set(0.0);
-		}
-		
-		if (pickupButton.isPressed())
-		{
-			pickup.set(1.0);
-		}
-		else{
-			pickup.set(0.0);
-		}
 		
 		if (climberButton.isPressed())
 		{
@@ -447,15 +527,6 @@ public class Robot extends IterativeRobot
 		{
 			climber1.set(0.0);
 			climber2.set(0.0);
-		}
-		
-		if (feederButton.isPressed())
-		{
-			feeder.set(-1.0);
-		}
-		else
-		{
-			feeder.set(0.0);
 		}
 		
 		if (unjammerButton.isPressed())
@@ -494,21 +565,72 @@ public class Robot extends IterativeRobot
 //		}
 	}
 	
+	public double getTime()
+	{
+		return this.lastTime;
+	}
 	
-	double currentExposure = -99.0;
-	double currentWhiteBalance = -99.0;
+	public double getCurrentBearing()
+	{
+    	double bearing = gyro.getAngle();
+    	
+    	if (bearing >= 360.0)
+    	{
+    		bearing = bearing - (360.0 * Math.floor(bearing / 360.0));
+    	}
+    	else if (bearing <= -360.0)
+    	{
+    		bearing = bearing + (360.0 * Math.floor(bearing / 360.0));
+    	}
+    	
+    	if (bearing < -180.0)
+    	{
+    		bearing += 360.0; 
+    	}
+    	else if (bearing > 180.0)
+    	{
+    		bearing -= 360.0;
+    	}
+    	
+    	return bearing;
+	}
+	
+	public double getBearing()
+	{
+		return this.lastBearing;
+	}
+	
+	public double getDistance()
+	{
+		return this.lastDistance;
+	}
+	
+	public double getVelocity()
+	{
+		return this.lastVelocity;
+	}
+	
+	public double getAcceleration()
+	{
+		return this.lastAcceleration;
+	}
 	
 	public void writeDashboard()
 	{
+		SmartDashboard.putNumber("Bearing", this.getBearing());
+		SmartDashboard.putNumber("Distance", this.getDistance());
+		SmartDashboard.putNumber("Velocity", this.getVelocity());
+		SmartDashboard.putNumber("Acceleration", this.getAcceleration());
+		
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
-		SmartDashboard.putNumber("gyro", gyro.getAngle());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
-		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
 
 		//cmdSmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
-		SmartDashboard.putBoolean("Pickup Out", intake.get() == DoubleSolenoid.Value.kForward);
+
+		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
+		SmartDashboard.putBoolean("Pickup Out", intakeSolenoid.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Wall Up", gearWall.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Draps Up", gearDrapes.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
@@ -528,6 +650,7 @@ public class Robot extends IterativeRobot
 				if (cameraHigh != null) cameraHigh.setExposureManual((int)exposure);
 				if (cameraLow != null) cameraLow.setExposureManual((int)exposure);
 			}
+			currentExposure = exposure;
 		}
 		
 		double whiteBalance = SmartDashboard.getNumber("Camera WB", -3.0);
@@ -544,6 +667,7 @@ public class Robot extends IterativeRobot
 				if (cameraHigh != null) cameraHigh.setWhiteBalanceManual((int)whiteBalance);
 				if (cameraLow != null) cameraLow.setWhiteBalanceManual((int)whiteBalance);
 			}
+			currentWhiteBalance = whiteBalance;
 		}
 		
 	}
