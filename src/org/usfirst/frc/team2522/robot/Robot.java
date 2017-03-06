@@ -35,13 +35,24 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Robot extends IterativeRobot
 {
 	public Timer robotTimer = new Timer();
+	public final double robotSampleRate = 0.1;
+	public final double kVf	= 1.0 / 175.0;
+	public final double kVp = 1.0 / 175.0;
+	public final double kAp = 0.0;
+	public final double kDp = 0.0;
+	public final double kBp = 0.015;
+	
 	private double lastTime = 0.0;
 	private double lastBearing = 0.0;
 	private double lastDistance = 0.0;
 	private double lastVelocity = 0.0;
 	private double lastAcceleration = 0.0;
-	private double driveStraightBearing = 0.0;
-	private double driveToStartDistance = 0.0;
+	
+	public double expBearing = 0.0;
+	public double expDistance = 0.0;
+	public double expVelocity = 0.0;
+	public double expAcceleration = 0.0;
+	
 	
 	Thread visionThread;
 	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
@@ -234,11 +245,10 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
-		double averageCount = 10.0;
 		double currentTime = robotTimer.get();
 		double t = currentTime - lastTime;
 
-		if (t >= 0.1)
+		if (t >= this.robotSampleRate)
 		{
 			double currentDistance = this.getCurrentDistance();
 			double currentBearing = this.getCurrentBearing();
@@ -260,8 +270,6 @@ public class Robot extends IterativeRobot
 			double v = d / t;
 			double a = (v - this.lastVelocity) / t;
 	
-	//		this.lastAcceleration = (((this.lastAcceleration / averageCount) * (averageCount - 1.0)) +  a) / averageCount;		
-	//		this.lastVelocity = (((this.lastVelocity / averageCount) * (averageCount - 1.0)) +  v) / averageCount;		
 			this.lastAcceleration = a;		
 			this.lastVelocity = v;		
 			this.lastDistance += d;
@@ -291,21 +299,36 @@ public class Robot extends IterativeRobot
 					motionProfileTimer.reset();
 					motionProfileTimer.start();
 					
-					ps.println("Time," + 
-							   "Power," +
-							   "Bearing," +
-							   "Distance," +
-							   "Velocity," +
-							   "Acceleration"
+					this.expBearing = 0.0;
+					this.expDistance = 0.0;
+					this.expVelocity = 0.0;
+					this.expAcceleration = 0.0;
+					
+					ps.println("Time\t" + 
+							   "Left Power\t" +
+							   "Right Power\t" +
+							   "Bearing\t" +
+							   "Exp Bearing\t" +
+							   "Distance\t" +
+							   "Exp Distance\t" +
+							   "Velocity\t" +
+							   "Exp Velocity\t" +
+							   "Acceleration\t" + 
+							   "Exp Acceleration\t" 
 					);
 				}
 				
-				ps.println(String.valueOf(motionProfileTimer.get()) + "," + 
-						   String.valueOf(leftDrive1.get()) + "," +
-						   String.valueOf(this.getBearing()) + "," +
-						   String.valueOf(this.getDistance()) + "," +
-						   String.valueOf(this.getVelocity()) + "," +
-						   String.valueOf(this.getAcceleration())
+				ps.println(String.valueOf(motionProfileTimer.get()) + "\t" + 
+						   String.valueOf(leftDrive1.get()) + "\t" +
+						   String.valueOf(rightDrive1.get()) + "\t" +
+						   String.valueOf(this.getBearing()) + "\t" +
+						   String.valueOf(this.expBearing) + "\t" +
+						   String.valueOf(this.getDistance()) + "\t" +
+						   String.valueOf(this.expDistance) + "\t" +
+						   String.valueOf(this.getVelocity()) + "\t" +
+						   String.valueOf(this.expVelocity) + "\t" +
+						   String.valueOf(this.getAcceleration()) + "\t" +
+						   String.valueOf(this.expAcceleration)
 				);
 			}
 			else
@@ -370,11 +393,18 @@ public class Robot extends IterativeRobot
 	{
 		if (driveStraightButton.isPressed())
 		{
-			AutonomousController.driveTo(this, 0/*driveStraightBearing*/, 60.0/*driveToStartDistance + 60.0*/);
+			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
+			SmartDashboard.putNumber("Test Drive Distance", dist);
+			//AutonomousController.driveTo(this, AutonomousController.driveStraightBearing, AutonomousController.driveToStartDistance + dist);
+
+			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
+			SmartDashboard.putNumber("Test Drive Power", power);
+			AutonomousController.driveForward(this, AutonomousController.driveStraightBearing, power);
 		}
 		else
 		{
-			driveToStartDistance = this.getDistance();
+			boolean updateDriveStraightBearing = true;
+			
 			if (!wheelDrive)
 			{
 				myDrive.tankDrive(leftStick, rightStick, true);
@@ -390,7 +420,6 @@ public class Robot extends IterativeRobot
 					rightPower = wheelValue;
 					leftPower = -wheelValue;
 					myDrive.tankDrive(leftPower, rightPower);
-					driveStraightBearing = this.getBearing();
 				}
 				else
 				{
@@ -398,19 +427,25 @@ public class Robot extends IterativeRobot
 					{
 						leftPower = leftPower * (1+wheelValue);
 						myDrive.tankDrive(leftPower, rightPower);
-						driveStraightBearing = this.getBearing();
 					}
 					else if (wheelValue > 0.05)
 					{
 						rightPower = rightPower * (1 - wheelValue);
 						myDrive.tankDrive(leftPower, rightPower);
-						driveStraightBearing = this.getBearing();
 					}
 					else
 					{
-						AutonomousController.driveForward(this, driveStraightBearing, -leftPower);
+						AutonomousController.driveForward(this, AutonomousController.driveStraightBearing, -leftPower);
+						updateDriveStraightBearing = false;
 					}
 				}
+			}
+			
+			AutonomousController.driveToLastTime = 0.0;  // TODO: remove this after testing.
+			AutonomousController.driveToStartDistance = this.getDistance();
+			if (updateDriveStraightBearing)
+			{
+				AutonomousController.driveStraightBearing = this.getBearing();
 			}
 		}
 		
@@ -640,12 +675,10 @@ public class Robot extends IterativeRobot
 	{
 		this.gyro.reset();
 		this.lastBearing = this.getCurrentBearing();
-		this.driveStraightBearing = lastBearing;
 		
 		this.leftDriveEncoder.reset();
 		this.rightDriveEncoder.reset();
 		this.lastDistance = 0.0;
-		this.driveToStartDistance = lastDistance;
 		
 		this.lastVelocity = 0.0;
 		this.lastAcceleration = 0.0;
@@ -653,7 +686,8 @@ public class Robot extends IterativeRobot
 		this.lastTime = this.robotTimer.get();
 		
 		AutonomousController.driveToLastTime = 0.0;
-		AutonomousController.driveToThrottle = 0.0;
+		AutonomousController.driveStraightBearing = 0.0;
+		AutonomousController.driveToStartDistance = 0.0;
 	}
 	
 	public void writeDashboard()
