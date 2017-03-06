@@ -226,14 +226,7 @@ public class Robot extends IterativeRobot
 
 		// Init Motion Control Values
 		//
-    	lastBearing = this.getCurrentBearing();    	
-		driveStraightBearing = lastBearing;
-    	
-		lastDistance = leftDriveEncoder.getDistance();
-		driveToStartDistance = lastDistance;
-		
-		lastVelocity = 0;
-		lastAcceleration = 0;
+    	this.resetMotion();
 	}
 
 	/**
@@ -241,19 +234,91 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
+		double averageCount = 10.0;
 		double currentTime = robotTimer.get();
-		double currentDistance = leftDriveEncoder.getDistance();
-		double currentBearing = this.getCurrentBearing();
-		
 		double t = currentTime - lastTime;
-		double d = currentDistance - lastDistance;
-		double v = d / t;
-		
-		this.lastAcceleration = (v - lastVelocity) / t;		
-		this.lastVelocity = v;
-		this.lastDistance = currentDistance;
-		this.lastBearing = currentBearing;
-		this.lastTime = currentTime;
+
+		if (t >= 0.1)
+		{
+			double currentDistance = this.getCurrentDistance();
+			double currentBearing = this.getCurrentBearing();
+			
+			// bearing delta
+			double b = currentBearing - lastBearing;
+			if (Math.abs(b) < 0.1)
+			{
+				b = 0.0;
+			}
+	
+			// distance delta
+			double d = currentDistance - lastDistance;
+			if (Math.abs(d) < 0.1)
+			{
+				d = 0.0;
+			}
+			
+			double v = d / t;
+			double a = (v - this.lastVelocity) / t;
+	
+	//		this.lastAcceleration = (((this.lastAcceleration / averageCount) * (averageCount - 1.0)) +  a) / averageCount;		
+	//		this.lastVelocity = (((this.lastVelocity / averageCount) * (averageCount - 1.0)) +  v) / averageCount;		
+			this.lastAcceleration = a;		
+			this.lastVelocity = v;		
+			this.lastDistance += d;
+			this.lastBearing += b;
+			this.lastTime = currentTime;
+	
+			if (motionRecordButton.isPressed())
+			{
+				if (ps == null)
+				{
+					File f = new File("/home/lvuser/MotionProfile0.txt");
+					for(int i = 0;f.exists();i++)
+					{
+						f = new File("/home/lvuser/MotionProfile" + i + ".txt");
+					}
+					try 
+					{
+						ps = new PrintStream(f);
+					}
+					catch(IOException e)
+					{
+						ps = null;
+						e.printStackTrace();
+					}
+					
+					System.out.println("MotionRecording started: " + f.getName());
+					motionProfileTimer.reset();
+					motionProfileTimer.start();
+					
+					ps.println("Time," + 
+							   "Power," +
+							   "Bearing," +
+							   "Distance," +
+							   "Velocity," +
+							   "Acceleration"
+					);
+				}
+				
+				ps.println(String.valueOf(motionProfileTimer.get()) + "," + 
+						   String.valueOf(leftDrive1.get()) + "," +
+						   String.valueOf(this.getBearing()) + "," +
+						   String.valueOf(this.getDistance()) + "," +
+						   String.valueOf(this.getVelocity()) + "," +
+						   String.valueOf(this.getAcceleration())
+				);
+			}
+			else
+			{
+				if (ps != null)
+				{
+					ps.close();
+					ps = null;
+					motionProfileTimer.stop();
+					motionProfileTimer.reset();
+				}
+			}
+		}
 		
 		writeDashboard();		
 	}
@@ -263,9 +328,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void autonomousInit()
 	{
-    	lastBearing = this.getCurrentBearing();    	
-		driveStraightBearing = lastBearing;
-		driveToStartDistance = this.getDistance();
+		this.resetMotion();
 	}
 
 	/**
@@ -297,9 +360,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopInit()
 	{
-    	lastBearing = this.getCurrentBearing();    	
-		driveStraightBearing = lastBearing;
-		driveToStartDistance = this.getDistance();
+		this.resetMotion();
 	}
 	
 	/**
@@ -362,51 +423,6 @@ public class Robot extends IterativeRobot
 
 		}
 		
-		if (motionRecordButton.isPressed())
-		{
-			if (ps == null)
-			{
-				File f = new File("/home/lvuser/MotionProfile0.txt");
-				for(int i = 0;f.exists();i++)
-				{
-					f = new File("/home/lvuser/MotionProfile" + i + ".txt");
-				}
-				try 
-				{
-					ps = new PrintStream(f);
-				}
-				catch(IOException e)
-				{
-					ps = null;
-					e.printStackTrace();
-				}
-				
-				System.out.println("MotionRecording started: " + f.getName());
-				motionProfileTimer.reset();
-				motionProfileTimer.start();
-				
-				gyro.reset();
-				leftDriveEncoder.reset();
-			}
-			
-			ps.println(String.valueOf(motionProfileTimer.get()) + "," + 
-					   String.valueOf(leftDrive1.get()) + "," +
-					   String.valueOf(this.getBearing()) + "," +
-					   String.valueOf(this.getDistance()) + "," +
-					   String.valueOf(this.getVelocity()) + "," +
-					   String.valueOf(this.getAcceleration())
-			);
-		}
-		else
-		{
-			if (ps != null)
-			{
-				ps.close();
-				ps = null;
-				motionProfileTimer.stop();
-				motionProfileTimer.reset();
-			}
-		}
 	
 		if (shiftButton.isPressed()) //Toggle button
 		{
@@ -595,6 +611,11 @@ public class Robot extends IterativeRobot
     	return bearing;
 	}
 	
+	public double getCurrentDistance()
+	{
+		return this.leftDriveEncoder.getDistance();
+	}
+	
 	public double getBearing()
 	{
 		return this.lastBearing;
@@ -615,6 +636,26 @@ public class Robot extends IterativeRobot
 		return this.lastAcceleration;
 	}
 	
+	public void resetMotion()
+	{
+		this.gyro.reset();
+		this.lastBearing = this.getCurrentBearing();
+		this.driveStraightBearing = lastBearing;
+		
+		this.leftDriveEncoder.reset();
+		this.rightDriveEncoder.reset();
+		this.lastDistance = 0.0;
+		this.driveToStartDistance = lastDistance;
+		
+		this.lastVelocity = 0.0;
+		this.lastAcceleration = 0.0;
+		
+		this.lastTime = this.robotTimer.get();
+		
+		AutonomousController.driveToLastTime = 0.0;
+		AutonomousController.driveToThrottle = 0.0;
+	}
+	
 	public void writeDashboard()
 	{
 		SmartDashboard.putNumber("Bearing", this.getBearing());
@@ -625,6 +666,7 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
+		SmartDashboard.putNumber("gyro", this.getCurrentBearing());
 
 		//cmdSmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
