@@ -2,7 +2,6 @@ package org.usfirst.frc.team2522.robot;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.sql.DriverPropertyInfo;
 
 import org.opencv.core.Mat;
 
@@ -37,7 +36,11 @@ public class Robot extends IterativeRobot
 	public Timer robotTimer = new Timer();
 	public final double robotSampleRate = 0.1;
 	public final double kVf	= 1.0 / 175.0;
-	public final double kVp = 1.0 / 175.0;
+	public final double kVfa	= 0.000006854;
+	public final double kVfb	= 0.004075;
+	public final double kVfc	= 0.076425;
+	
+	public final double kVp = -0.002;
 	public final double kAp = 0.0;
 	public final double kDp = 0.0;
 	public final double kBp = 0.015;
@@ -395,11 +398,11 @@ public class Robot extends IterativeRobot
 		{
 			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 			SmartDashboard.putNumber("Test Drive Distance", dist);
-			//AutonomousController.driveTo(this, AutonomousController.driveStraightBearing, AutonomousController.driveToStartDistance + dist);
+			AutonomousController.driveTo(this, AutonomousController.driveStraightBearing, AutonomousController.driveToStartDistance + dist);
 
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
-			AutonomousController.driveForward(this, AutonomousController.driveStraightBearing, power);
+			//myDrive.tankDrive(-power, -power, false);
 		}
 		else
 		{
@@ -698,7 +701,9 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("Acceleration", this.getAcceleration());
 		
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
+		SmartDashboard.putNumber("leftDrivePower", leftDrive1.get());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
+		SmartDashboard.putNumber("rightDrivePower", rightDrive1.get());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
 		SmartDashboard.putNumber("gyro", this.getCurrentBearing());
 

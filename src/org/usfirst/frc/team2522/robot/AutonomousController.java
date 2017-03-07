@@ -42,13 +42,14 @@ public final class AutonomousController
 				robot.expAcceleration = p.acceleration;
 				
 				// Set the power to the expected velocity * the velocity feed value.
-				leftPower = robot.kVf * p.velocity;
-				rightPower = robot.kVf * p.velocity;
+				//leftPower = robot.kVf * p.velocity;
+				leftPower = (robot.kVfa * p.velocity * p.velocity) + (robot.kVfb * p.velocity) + robot.kVfc; 
+				rightPower = leftPower;
 				
 				// Calculate the current velocity error and apply the proportional error adjustment 
 				double vError = robot.getVelocity() - p.velocity;
-				leftPower += robot.kVp * vError;
-				rightPower += robot.kVp * vError;
+				leftPower += (robot.kVp * vError);
+				rightPower += (robot.kVp * vError);
 				
 				// Calculate the current velocity error and apply the proportional error adjustment 
 				double aError = robot.getAcceleration() - p.acceleration;
@@ -109,7 +110,7 @@ public final class AutonomousController
 			rightPower = 0;
 		}
 		
-		robot.myDrive.tankDrive(-leftPower, -rightPower);
+		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
 		
 		return finished;
 	}
@@ -127,7 +128,7 @@ public final class AutonomousController
 			error += 360.0;
 		}
 		
-		robot.myDrive.tankDrive(-power - (0.015 * error), -power + (0.015 * error));
+		robot.myDrive.tankDrive(-power - (0.015 * error), -power + (0.015 * error), true);
 	}
 	
 }
