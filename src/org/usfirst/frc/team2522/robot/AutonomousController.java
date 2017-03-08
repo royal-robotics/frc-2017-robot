@@ -1,7 +1,5 @@
 package org.usfirst.frc.team2522.robot;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
-
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -11,66 +9,146 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public final class AutonomousController 
 {
-	public static double driveToLastTime = 0.0;
-	public static double driveToStartDistance = 0.0;
-	public static double driveStraightBearing = 0.0;
+	public static double motionStartTime = 0.0;
+	public static double motionStartDistance = 0.0;
+	public static double motionStartBearing = 0.0;
 	
-	public static boolean driveTo(Robot robot, double bearing, double distance)
+	public static boolean rotateTo(Robot robot, double angle)
+	{
+		boolean finished = false;
+		
+		double leftPower = robot.leftDrive1.get(); 
+		double rightPower = robot.rightDrive1.get(); 
+
+		if (motionStartTime == 0.0) 
+		{
+			motionStartTime = robot.getTime();
+			leftPower = 0.0;
+			rightPower = 0.0;
+		}
+		else 
+		{
+			double t = robot.getTime() - motionStartTime;
+			
+			if (t >= robot.robotSampleRate)
+			{
+				double maxRAcc = 300.0;
+				
+				if (angle < 0.0)
+				{
+					maxRAcc = -maxRAcc;
+				}
+				
+				MotionPosition p = MotionControl.getExpectedRotationPosition(t, angle, maxRAcc);
+				
+				robot.motionTime = t;
+				robot.expBearing = p.bearing + motionStartBearing;
+				robot.expDistance = 0.0;
+				robot.expVelocity = p.velocity;
+				robot.expAcceleration = p.acceleration;
+				
+				// Set the power to the expected velocity * the velocity feed value.
+				double power = robot.kRVf * p.velocity;
+								
+				// Adjust power for desired acceleration or breaking
+				//
+				if ((p.acceleration > 0.0 && p.velocity > 0.0) || (p.acceleration < 0.0 && p.velocity < 0.0))
+				{
+					power += robot.kRAf * p.acceleration;
+				}
+				else
+				{
+					power += robot.kRBf * p.acceleration;
+				}
+
+				// Calculate the current velocity and distance errors and average the adjustment between them.
+				//
+				double vError = robot.getRotationVelocity() - p.velocity;
+				double dError = (robot.getBearing() - motionStartBearing) - p.bearing;
+				power += ((robot.kRVp * vError) + (robot.kRBp * dError)) / 2.0;
+				
+				leftPower = power; 
+				rightPower = -power;
+			}
+		}		
+		
+//		if ((Math.abs((robot.getRawBearing() - motionStartBearing) - angle) < 1.0) && (Math.abs(robot.getRotationVelocity()) < 1.0))
+//		{
+//			finished = true;
+//			leftPower = 0;				
+//			rightPower = 0;
+//		}
+		
+		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
+
+		motionStartDistance = robot.getDistance();
+		
+		
+		return finished;
+	}
+
+	
+	public static boolean driveTo(Robot robot, double distance)
 	{
 		boolean finished = false;
 
 		double leftPower = robot.leftDrive1.get(); 
 		double rightPower = robot.rightDrive1.get(); 
 
-		if (driveToLastTime == 0.0) 
+		if (motionStartTime == 0.0) 
 		{
-			driveToLastTime = robot.getTime();
+			motionStartTime = robot.getTime();
 			leftPower = 0.0;
 			rightPower = 0.0;
 		}
 		else 
 		{
-			double t = robot.getTime() - driveToLastTime;
+			double t = robot.getTime() - motionStartTime;
 					
 			if (t >= robot.robotSampleRate)
 			{
-				MotionPosition p = MotionControl.GetExpectedPosition(t, distance, bearing, 0.0, 150.0, 100.0);
+				double maxVel = 150.0;
+				double maxAcc = 100.0;
 				
+				if (distance < 0.0)
+				{
+					maxVel = -maxVel;
+					maxAcc = -maxAcc;
+				}
+				
+				MotionPosition p = MotionControl.getExpectedDrivePosition(t, distance, motionStartBearing, 0.0, maxVel, maxAcc);
+				
+				robot.motionTime = t;
 				robot.expBearing = p.bearing;
-				robot.expDistance = p.distance + driveToStartDistance;
+				robot.expDistance = p.distance + motionStartDistance;
 				robot.expVelocity = p.velocity;
 				robot.expAcceleration = p.acceleration;
 				
 				// Set the power to the expected velocity * the velocity feed value.
-				//leftPower = robot.kVf * p.velocity;
-				leftPower = (robot.kVfa * p.velocity * p.velocity) + (robot.kVfb * p.velocity) + robot.kVfc; 
-				rightPower = leftPower;
-				
-				// Calculate the current velocity error and apply the proportional error adjustment 
-				double vError = robot.getVelocity() - p.velocity;
-				leftPower += (robot.kVp * vError);
-				rightPower += (robot.kVp * vError);
-				
-				// Calculate the current velocity error and apply the proportional error adjustment 
-				double aError = robot.getAcceleration() - p.acceleration;
-				leftPower += robot.kAp * aError;
-				rightPower += robot.kAp * aError;
+				double power = robot.kVf * p.velocity;
+								
+				// Adjust power for desired acceleration or breaking
+				//
+				if ((p.acceleration > 0.0 && p.velocity > 0.0) || (p.acceleration < 0.0 && p.velocity < 0.0))
+				{
+					power += robot.kAf * p.acceleration;
+				}
+				else
+				{
+					power += robot.kBf * p.acceleration;
+				}
 
-				// Calculate the current distance error and apply the proportional error adjustment 
-				double dError = (robot.getDistance() - driveToStartDistance) - p.distance;
-				leftPower += robot.kDp * dError;
-				rightPower += robot.kDp * dError;
+				// Calculate the current velocity and distance errors and average the adjustment between them.
+				//
+				double vError = robot.getVelocity() - p.velocity;
+				double dError = (robot.getDistance() - motionStartDistance) - p.distance;
+				power += ((robot.kVp * vError) + (robot.kDp * dError)) / 2.0;
+				
+				leftPower = power; 
+				rightPower = power;
 				
 				// Calculate the current bearing error and apply the proportional error adjustment 				
 				double bError = robot.getBearing() - p.bearing;
-				if (bError > 180.0) 
-				{
-					bError -= 360.0;
-				}
-				else if (bError < -180.0)
-				{
-					bError += 360.0;
-				}
 				double leftAdj = -robot.kBp * bError;
 				double rightAdj = robot.kBp * bError;
 				
@@ -103,12 +181,12 @@ public final class AutonomousController
 			}
 		}
 		
-		if ((Math.abs((robot.getDistance() - driveToStartDistance) - distance) < 1.0) && (Math.abs(robot.getVelocity()) < 1.0))
-		{
-			finished = true;
-			leftPower = 0;				
-			rightPower = 0;
-		}
+//		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.0) && (Math.abs(robot.getVelocity()) < 1.0))
+//		{
+//			finished = true;
+//			leftPower = 0;				
+//			rightPower = 0;
+//		}
 		
 		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
 		
@@ -119,14 +197,6 @@ public final class AutonomousController
 	public static void driveForward(Robot robot, double bearing, double power)
 	{
 		double error = bearing - robot.getBearing();
-		if (error > 180.0) 
-		{
-			error -= 360.0;
-		}
-		else if (error < -180.0)
-		{
-			error += 360.0;
-		}
 		
 		robot.myDrive.tankDrive(-power - (0.015 * error), -power + (0.015 * error), true);
 	}

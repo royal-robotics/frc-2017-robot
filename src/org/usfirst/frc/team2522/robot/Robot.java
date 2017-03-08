@@ -4,6 +4,9 @@ import java.io.*;
 import java.nio.ByteBuffer;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
 import com.ctre.CANTalon;
 import com.ctre.CANTalon.FeedbackDevice;
@@ -13,6 +16,7 @@ import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
 import edu.wpi.cscore.MjpegServer;
 import edu.wpi.cscore.UsbCamera;
+import edu.wpi.cscore.VideoException;
 import edu.wpi.cscore.VideoSink;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.AnalogInput;
@@ -34,23 +38,32 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Robot extends IterativeRobot
 {
 	public Timer robotTimer = new Timer();
-	public final double robotSampleRate = 0.1;
-	public final double kVf	= 1.0 / 175.0;
-	public final double kVfa	= 0.000006854;
-	public final double kVfb	= 0.004075;
-	public final double kVfc	= 0.076425;
+	public final double robotSampleRate = 0.05;
 	
-	public final double kVp = -0.002;
-	public final double kAp = 0.0;
-	public final double kDp = 0.0;
+	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
+	public final double kAf = 0.0039;
+	public final double kBf = 0.0024;
+	public final double kVp = -kVf;
+	public final double kDp = -0.02;
 	public final double kBp = 0.015;
+
+	
+	public final double kRVf	= 1.0 / 565.0;	// 1 / max rotational velocity
+	public final double kRAf = 0.0010;
+	public final double kRBf = 0.0006;
+	public final double kRVp = -kRVf;
+	public final double kRBp = -0.0015;
 	
 	private double lastTime = 0.0;
 	private double lastBearing = 0.0;
+	private double lastRotationalVelocity = 0.0;
+	private double lastRotationalAcceleration = 0.0;
+
 	private double lastDistance = 0.0;
 	private double lastVelocity = 0.0;
 	private double lastAcceleration = 0.0;
 	
+	public double motionTime = 0.0;
 	public double expBearing = 0.0;
 	public double expDistance = 0.0;
 	public double expVelocity = 0.0;
@@ -115,7 +128,7 @@ public class Robot extends IterativeRobot
 	// Operator Controls
 	//
 	POVButton intakeButton = new POVButton(operatorStick, 0, 0, ButtonType.Toggle);
-	POVButton gearPushoutButton = new POVButton(operatorStick,0, 90, ButtonType.Hold);
+	POVButton gearPushoutButton = new POVButton(operatorStick, 0, 90, ButtonType.Hold);
 	
 	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
 	Button gearWallDnButton = new Button(operatorStick, 2, ButtonType.Toggle);
@@ -140,13 +153,14 @@ public class Robot extends IterativeRobot
 	Timer motionProfileTimer = new Timer();
 	
 	CameraServer cameraServer = CameraServer.getInstance();
-	CvSource  cameraStream = CameraServer.getInstance().putVideo("camera", 640, 480);
+	CvSource  cameraStream = null;
 	UsbCamera cameraHigh = null;
 	UsbCamera cameraLow = null;
 	CvSink cameraHighSink = null;
 	CvSink cameraLowSink = null;
-//	MjpegServer server = CameraServer.getInstance().addServer("camera");
-//	Mat mat = new Mat();
+	boolean showLowCamera = false;
+	boolean showImageBlobs = false;
+	boolean showImageTargets = false;
 		
 	public void robotInit()
 	{		
@@ -204,39 +218,116 @@ public class Robot extends IterativeRobot
     	gearPushout.set(DoubleSolenoid.Value.kForward);
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
     	shooterHood.set(DoubleSolenoid.Value.kReverse);
-//    	visionThread = new Thread(() -> {
-////    		UsbCamera camera = new UsbCamera("cam0", 0);
-////    		MjpegServer server = CameraServer.getInstance().addServer("cam0");
-////    		server.setSource(camera);
-////    		CameraServer.getInstance().startAutomaticCapture(camera);
-//    		while (!Thread.interrupted()) {
-//    		}
-//    	});
+    	
+    	
+		cameraStream = cameraServer.putVideo("camera", 640, 480);
 
 		cameraHigh = new UsbCamera("cam0", 0);
-		if (cameraHigh != null) cameraHigh.setResolution(640, 480);
-    	
-//	   	cameraLow = new UsbCamera("cam1", 1);
-    	if (cameraLow != null) cameraLow.setResolution(640, 480);
+	   	cameraLow = new UsbCamera("cam1", 1);
     	
     	if (cameraHigh != null)
     	{
-    		cameraServer.addCamera(cameraHigh);
-    		cameraServer.startAutomaticCapture(cameraHigh);
+    		cameraHigh.setResolution(640, 480);			
+	    	
+    		if (!cameraHigh.isConnected())
+	    	{
+	        	System.out.println("High Camera Not Connected.");
+	        	cameraHigh.free();
+	        	cameraHigh = null;
+	    	}
+    		else
+    		{
+//				cameraServer.startAutomaticCapture(cameraHigh);
+				cameraServer.addCamera(cameraHigh);
+				cameraHighSink = cameraServer.getVideo(cameraHigh);
+    		}
     	}
-    	    	
-//    	UsbCamera camera = new UsbCamera("cam2", 0);
-//    	visionThread.setDaemon(true);
-//		visionThread.start();
-    	//CameraServer.getInstance().startAutomaticCapture(cameraHigh);
     	
-//    	Cvcamera.grabFrame(mat);
-//		mat.get(0, 0);
-//		Cvcamera2.grabFrame(mat);
-//		mat.get(0, 0);
-		//CameraServer.getInstance().addCamera(camera);
-		//CameraServer.getInstance().
-//		server.setSource(camera);
+    	if (cameraLow != null)
+    	{
+    		cameraLow.setResolution(640, 480);
+	    	
+    		if (!cameraLow.isConnected())
+	    	{
+	        	System.out.println("Low Camera Not Connected.");
+	        	cameraLow.free();
+	        	cameraLow = null;
+	    	}
+    		else
+    		{
+	    		cameraServer.addCamera(cameraLow);
+				cameraLowSink = cameraServer.getVideo(cameraLow);
+    		}
+    	}
+
+    	
+    	
+    	visionThread = new Thread(() -> {
+			Mat mat = new Mat();    		
+    		
+    		
+    		while (!Thread.interrupted()) {
+    			if (showLowCamera)
+    			{
+    				if (cameraLow != null)
+    				{
+        				if (cameraHighSink != null)
+        				{
+        					cameraServer.removeServer("opencv_" + cameraHigh.getName());
+        					cameraHighSink.free();
+        					cameraHighSink = null;
+        				}
+        				
+        				if (cameraLowSink == null)
+        				{
+        					cameraLowSink = cameraServer.getVideo(cameraLow);
+        				}
+        				
+    					if (cameraLowSink.grabFrame(mat) == 0)
+    					{
+    						cameraStream.notifyError(cameraLowSink.getError());
+    						System.out.println(cameraLowSink.getError());
+    					}
+    					else
+    					{
+    						cameraStream.putFrame(mat);
+    					}
+    				}
+    			}
+    			else
+    			{
+    				if (cameraHigh != null)
+    				{
+        				if (cameraLowSink != null)
+        				{
+        					cameraServer.removeServer("opencv_" + cameraLow.getName());
+        					cameraLowSink.free();
+        					cameraLowSink = null;
+        				}
+        				
+        				if (cameraHighSink == null)
+        				{
+        					cameraHighSink = cameraServer.getVideo(cameraHigh);
+        				}
+
+        				if (cameraHighSink.grabFrame(mat) == 0)
+    					{
+    						cameraStream.notifyError(cameraHighSink.getError());
+    						System.out.println(cameraHighSink.getError());
+    					}
+    					else
+    					{
+    						Imgproc.rectangle(mat, new Point(100, 100), new Point(400, 400),
+    								new Scalar(255, 255, 255), 5);
+
+    						cameraStream.putFrame(mat);
+    					}
+    				}
+    			}
+    		}
+    	});
+    	
+		visionThread.start();
 
 		// Init Motion Control Values
 		//
@@ -248,6 +339,16 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
+		if (cameraLowButton.isPressed())
+		{
+			showLowCamera = true;
+		}
+		else
+		{
+			showLowCamera = false;
+		}
+	
+		
 		double currentTime = robotTimer.get();
 		double t = currentTime - lastTime;
 
@@ -258,10 +359,13 @@ public class Robot extends IterativeRobot
 			
 			// bearing delta
 			double b = currentBearing - lastBearing;
-			if (Math.abs(b) < 0.1)
+			if (Math.abs(b) < 0.05)
 			{
 				b = 0.0;
 			}
+			
+			double rv = b / t;
+			double ra = (rv - this.lastRotationalVelocity) / t;
 	
 			// distance delta
 			double d = currentDistance - lastDistance;
@@ -273,10 +377,15 @@ public class Robot extends IterativeRobot
 			double v = d / t;
 			double a = (v - this.lastVelocity) / t;
 	
-			this.lastAcceleration = a;		
-			this.lastVelocity = v;		
+			
 			this.lastDistance += d;
+			this.lastVelocity = v;		
+			this.lastAcceleration = a;		
+
 			this.lastBearing += b;
+			this.lastRotationalVelocity = rv;
+			this.lastRotationalAcceleration = ra;
+
 			this.lastTime = currentTime;
 	
 			if (motionRecordButton.isPressed())
@@ -302,16 +411,20 @@ public class Robot extends IterativeRobot
 					motionProfileTimer.reset();
 					motionProfileTimer.start();
 					
+					this.motionTime = 0.0;
 					this.expBearing = 0.0;
 					this.expDistance = 0.0;
 					this.expVelocity = 0.0;
 					this.expAcceleration = 0.0;
 					
 					ps.println("Time\t" + 
+							   "Motion Time\t" +
 							   "Left Power\t" +
 							   "Right Power\t" +
 							   "Bearing\t" +
 							   "Exp Bearing\t" +
+							   "RV\t" +
+							   "RA\t" +
 							   "Distance\t" +
 							   "Exp Distance\t" +
 							   "Velocity\t" +
@@ -322,10 +435,13 @@ public class Robot extends IterativeRobot
 				}
 				
 				ps.println(String.valueOf(motionProfileTimer.get()) + "\t" + 
+						   String.valueOf(this.motionTime) + "\t" +
 						   String.valueOf(leftDrive1.get()) + "\t" +
 						   String.valueOf(rightDrive1.get()) + "\t" +
-						   String.valueOf(this.getBearing()) + "\t" +
+						   String.valueOf(this.lastBearing) + "\t" +
 						   String.valueOf(this.expBearing) + "\t" +
+						   String.valueOf(this.getRotationVelocity()) + "\t" +
+						   String.valueOf(this.getRotationAcceleration()) + "\t" +
 						   String.valueOf(this.getDistance()) + "\t" +
 						   String.valueOf(this.expDistance) + "\t" +
 						   String.valueOf(this.getVelocity()) + "\t" +
@@ -398,7 +514,8 @@ public class Robot extends IterativeRobot
 		{
 			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 			SmartDashboard.putNumber("Test Drive Distance", dist);
-			AutonomousController.driveTo(this, AutonomousController.driveStraightBearing, AutonomousController.driveToStartDistance + dist);
+			AutonomousController.rotateTo(this, dist);
+			//AutonomousController.driveTo(this, dist);
 
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
@@ -438,30 +555,27 @@ public class Robot extends IterativeRobot
 					}
 					else
 					{
-						AutonomousController.driveForward(this, AutonomousController.driveStraightBearing, -leftPower);
-						updateDriveStraightBearing = false;
+						if (Math.abs(leftPower) > 0.05)
+						{
+							AutonomousController.driveForward(this, AutonomousController.motionStartBearing, -leftPower);
+							updateDriveStraightBearing = false;
+						}
+						else
+						{
+							myDrive.tankDrive(0.0, 0.0);
+						}
 					}
 				}
 			}
 			
-			AutonomousController.driveToLastTime = 0.0;  // TODO: remove this after testing.
-			AutonomousController.driveToStartDistance = this.getDistance();
+			AutonomousController.motionStartTime = 0.0;  // TODO: remove this after testing.
+			AutonomousController.motionStartDistance = this.getDistance();
 			if (updateDriveStraightBearing)
 			{
-				AutonomousController.driveStraightBearing = this.getBearing();
+				AutonomousController.motionStartBearing = this.getBearing();
 			}
 		}
 		
-		if (cameraLowButton.isPressed())
-		{
-		
-		}
-		else
-		{
-
-		}
-		
-	
 		if (shiftButton.isPressed()) //Toggle button
 		{
 			if (shifter.get() == DoubleSolenoid.Value.kForward)
@@ -623,40 +737,55 @@ public class Robot extends IterativeRobot
 	{
 		return this.lastTime;
 	}
+
+	public double getCurrentAngle()
+	{
+    	double angle = gyro.getAngle();
+    	
+    	if (angle >= 360.0)
+    	{
+    		angle = angle - (360.0 * Math.floor(angle / 360.0));
+    	}
+    	else if (angle <= -360.0)
+    	{
+    		angle = angle + (360.0 * Math.floor(angle / 360.0));
+    	}
+    	
+    	if (angle < -180.0)
+    	{
+    		angle += 360.0; 
+    	}
+    	else if (angle > 180.0)
+    	{
+    		angle -= 360.0;
+    	}
+    	
+    	return angle;
+	}
 	
 	public double getCurrentBearing()
 	{
-    	double bearing = gyro.getAngle();
-    	
-    	if (bearing >= 360.0)
-    	{
-    		bearing = bearing - (360.0 * Math.floor(bearing / 360.0));
-    	}
-    	else if (bearing <= -360.0)
-    	{
-    		bearing = bearing + (360.0 * Math.floor(bearing / 360.0));
-    	}
-    	
-    	if (bearing < -180.0)
-    	{
-    		bearing += 360.0; 
-    	}
-    	else if (bearing > 180.0)
-    	{
-    		bearing -= 360.0;
-    	}
-    	
-    	return bearing;
+    	return gyro.getAngle();
 	}
 	
 	public double getCurrentDistance()
 	{
 		return this.leftDriveEncoder.getDistance();
 	}
-	
+
 	public double getBearing()
 	{
-		return this.lastBearing;
+    	return this.lastBearing;
+	}
+	
+	public double getRotationVelocity()
+	{
+		return this.lastRotationalVelocity;
+	}
+	
+	public double getRotationAcceleration()
+	{
+		return this.lastRotationalAcceleration;
 	}
 	
 	public double getDistance()
@@ -679,6 +808,9 @@ public class Robot extends IterativeRobot
 		this.gyro.reset();
 		this.lastBearing = this.getCurrentBearing();
 		
+		this.lastRotationalVelocity = 0.0;
+		this.lastRotationalAcceleration = 0.0;
+		
 		this.leftDriveEncoder.reset();
 		this.rightDriveEncoder.reset();
 		this.lastDistance = 0.0;
@@ -688,26 +820,32 @@ public class Robot extends IterativeRobot
 		
 		this.lastTime = this.robotTimer.get();
 		
-		AutonomousController.driveToLastTime = 0.0;
-		AutonomousController.driveStraightBearing = 0.0;
-		AutonomousController.driveToStartDistance = 0.0;
+		AutonomousController.motionStartTime = 0.0;
+		AutonomousController.motionStartBearing = 0.0;
+		AutonomousController.motionStartDistance = 0.0;
 	}
 	
 	public void writeDashboard()
 	{
+		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
+		
+		SmartDashboard.putNumber("Angle", this.getCurrentAngle());
 		SmartDashboard.putNumber("Bearing", this.getBearing());
+		SmartDashboard.putNumber("RotVelocity", this.getRotationVelocity());
+		SmartDashboard.putNumber("RotAcceleration", this.getRotationAcceleration());
+		
 		SmartDashboard.putNumber("Distance", this.getDistance());
 		SmartDashboard.putNumber("Velocity", this.getVelocity());
 		SmartDashboard.putNumber("Acceleration", this.getAcceleration());
 		
 		SmartDashboard.putNumber("photoelectricSensor", sensor.getVoltage());
+		
 		SmartDashboard.putNumber("leftDrivePower", leftDrive1.get());
 		SmartDashboard.putNumber("leftDriveEncoder", leftDriveEncoder.getDistance());
 		SmartDashboard.putNumber("rightDrivePower", rightDrive1.get());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
-		SmartDashboard.putNumber("gyro", this.getCurrentBearing());
 
-		//cmdSmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
+		SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
 
 		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
@@ -715,9 +853,8 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putBoolean("Wall Up", gearWall.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Draps Up", gearDrapes.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
-		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 		
-		double exposure = SmartDashboard.getNumber("Camera Exposure", -3.0);
+		double exposure = SmartDashboard.getNumber("Camera Exposure", 1.0);
 		if (exposure != currentExposure)
 		{
 			SmartDashboard.putNumber("Camera Exposure", exposure);

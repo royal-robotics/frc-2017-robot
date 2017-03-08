@@ -1,5 +1,7 @@
 package org.usfirst.frc.team2522.robot;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 public class MotionControl 
 {
 	/**
@@ -9,48 +11,92 @@ public class MotionControl
 	 * @param bearing
 	 * @param vi
 	 * @param maxVel
-	 * @param maxAcc
+	 * @param maxAccl
 	 * 
 	 * @return
 	 */
-	public static MotionPosition GetExpectedPosition(double t, double distance, double bearing, double vi, double maxVel, double maxAcc)
+	public static MotionPosition getExpectedDrivePosition(double t, double distance, double bearing, double vi, double maxVel, double maxAccl)
 	{
-		// Calculate the time it takes to get to the cruise speed (max velocity).
-		double cruise_t = getTimeToVelocity(maxVel, vi, maxAcc);
+		/**
+		 * Maximum deceleration value.
+		 */
+		double maxBreak = -maxAccl;
+				
+				
+		/**
+		 * Velocity at beginning of acceleration.
+		 */
+		double accl_vi = vi;
 		
-		// Calculate distance to cruise speed (max velocity).
-		double cruise_d = getDistance(cruise_t, vi, maxAcc);
+		/**
+		 * Velocity at end of acceleration.
+		 */
+		double accl_vf = maxVel;
 		
-		// Calculate the turn around distance as if there was no max velocity
-		double turn_around = distance / 2.0;
+		/**
+		 * Time spent accelerating.
+		 */
+		double accl_t = getTimeToVelocity(accl_vf, accl_vi, maxAccl);
 		
-		// Calculate the trajectory variables
-		//
-		double ta, da;	// Time and Distance spent accelerating
-		double tc, dc;	// Time and Distance spent cruising
-		double td, dd;	// Time and Distance spent deceleration
+		/**
+		 * Distance traveled while accelerating.
+		 */
+		double accl_d = getDistance(accl_t, accl_vi, maxAccl);
 		
-		if (Math.abs(cruise_d) >= Math.abs(turn_around))
+		/**
+		 * Velocity at beginning of breaking.
+		 */
+		double break_vi = accl_vf;
+		
+		/**
+		 * Velocity at end of breaking.
+		 */
+		double break_vf = 0.0;
+		
+		/**
+		 * Time spent breaking.
+		 */
+		double break_t = getTimeToVelocity(break_vf, break_vi, maxBreak);
+		
+		/**
+		 * Distance traveled while breaking.
+		 */
+		double break_d = getDistance(break_t, break_vi, maxBreak);
+				
+		/**
+		 * Time spent at cruise speed.
+		 */
+		double cruise_t = 0.0;
+		
+		/**
+		 * Distance traveled at cruise speed.
+		 */
+		double cruise_d = 0.0;
+		
+		
+		if (Math.abs(distance) >= Math.abs(accl_d + break_d))
 		{
-			da = turn_around;
-			dc = 0.0;
-			dd = turn_around;
-
-			ta = getTimeToDistance(turn_around, vi, maxAcc);
-			tc = 0.0;
-			td = getTimeToDistance(turn_around, getVelocity(ta, vi, maxAcc), -maxAcc);
+			cruise_d = distance - (accl_d + break_d);
+			cruise_t = getTimeToDistance(cruise_d, accl_vf, 0.0);
 		}
 		else
 		{
-			da = cruise_d;
-			dc = distance - (2.0 * cruise_d);
-			dd = cruise_d;
-
-			ta = cruise_t;
-			tc = getTimeToDistance(distance - (da + dd), maxVel, 0.0);
-			td = cruise_t;
+			accl_d =  (maxAccl * distance) / (maxAccl - maxBreak);
+			accl_t = getTimeToDistance(accl_d, accl_vi, maxAccl);
+			accl_vf = getVelocity(accl_t, accl_vi, maxAccl);
+			
+			break_vi = accl_vf;
+			break_d = distance - accl_d;
+			break_t = getTimeToVelocity(break_vf, break_vi, maxBreak);
 		}
-
+	SmartDashboard.putNumber("accl_t", accl_t);
+	SmartDashboard.putNumber("accl_d", accl_d);
+	SmartDashboard.putNumber("cruise_t", cruise_t);
+	SmartDashboard.putNumber("cruise_d", cruise_d);
+	SmartDashboard.putNumber("break_t", break_t);
+	SmartDashboard.putNumber("break_d", break_d);
+		
+		
 		// Calculate the expected distance and velocity the robot should have achieved by the time specified.
 		//
 		double expectedDistance = 0.0;
@@ -63,23 +109,23 @@ public class MotionControl
 			expectedDistance = 0.0;
 			expectedAcceleration = 0.0;
 		}
-		else if (t <= ta)
+		else if (t <= accl_t)
 		{
-			expectedVelocity = getVelocity(t, vi, maxAcc);
-			expectedDistance = getDistance(t, vi, maxAcc);
-			expectedAcceleration = maxAcc;
+			expectedVelocity = getVelocity(t, accl_vi, maxAccl);
+			expectedDistance = getDistance(t, accl_vi, maxAccl);
+			expectedAcceleration = maxAccl;
 		}
-		else if (t <= (ta + tc))
+		else if (t <= (accl_t + cruise_t))
 		{
-			expectedVelocity = maxVel;
-			expectedDistance = da + getDistance(t - ta, maxVel, 0.0);
 			expectedAcceleration = 0.0;
+			expectedVelocity = accl_vf;
+			expectedDistance = accl_d + getDistance(t - accl_t, accl_vf, 0.0);
 		}
-		else if (t <= (ta + tc + td))
+		else if (t <= (accl_t + cruise_t + break_t))
 		{
-			expectedVelocity = getVelocity(t - (ta + tc), maxVel, -maxAcc);
-			expectedDistance = da + dc + getDistance(t - (ta + tc), maxVel, -maxAcc);
-			expectedAcceleration = -maxAcc;
+			expectedVelocity = getVelocity(t - (accl_t + cruise_t), break_vi, maxBreak);
+			expectedDistance = accl_d + cruise_d + getDistance(t - (accl_t + cruise_t), break_vi, maxBreak);
+			expectedAcceleration = maxBreak;
 		}
 		else
 		{
@@ -90,6 +136,96 @@ public class MotionControl
 		
 		return new MotionPosition(bearing, expectedDistance, expectedVelocity, expectedAcceleration);
 	}
+	
+	public static MotionPosition getExpectedRotationPosition(double t, double angle, double maxRAccl)
+	{
+		/**
+		 * Maximum deceleration value.
+		 */
+		double maxRBreak = -maxRAccl;
+				
+				
+		/**
+		 * Distance traveled while accelerating.
+		 */
+		double accl_d = angle / 2;
+
+		/**
+		 * Time spent accelerating.
+		 */
+		double accl_t = getTimeToDistance(accl_d, 0.0, maxRAccl);
+
+		/**
+		 * Velocity at beginning of acceleration.
+		 */
+		double accl_vi = 0.0;
+		
+		/**
+		 * Velocity at end of acceleration.
+		 */
+		double accl_vf = getVelocity(accl_t, 0.0, maxRAccl);
+		
+		
+		/**
+		 * Velocity at beginning of breaking.
+		 */
+		double break_vi = accl_vf;
+		
+		/**
+		 * Velocity at end of breaking.
+		 */
+		double break_vf = 0.0;
+		
+		/**
+		 * Distance traveled while breaking.
+		 */
+		double break_d = accl_d;				
+		
+		/**
+		 * Time spent breaking.
+		 */
+		double break_t = accl_t;
+		
+
+	SmartDashboard.putNumber("accl_t", accl_t);
+	SmartDashboard.putNumber("accl_d", accl_d);
+	SmartDashboard.putNumber("break_t", break_t);
+	SmartDashboard.putNumber("break_d", break_d);
+		
+		
+		// Calculate the expected distance and velocity the robot should have achieved by the time specified.
+		//
+		double expectedRotation = 0.0;
+		double expectedVelocity = 0.0;
+		double expectedAcceleration = 0.0;
+		
+		if (t <= 0.0)
+		{
+			expectedVelocity = 0.0;
+			expectedRotation = 0.0;
+			expectedAcceleration = 0.0;
+		}
+		else if (t <= accl_t)
+		{
+			expectedVelocity = getVelocity(t, accl_vi, maxRAccl);
+			expectedRotation = getDistance(t, accl_vi, maxRAccl);
+			expectedAcceleration = maxRAccl;
+		}
+		else if (t <= (accl_t + break_t))
+		{
+			expectedVelocity = getVelocity(t - accl_t, break_vi, maxRBreak);
+			expectedRotation = accl_d + getDistance(t - accl_t, break_vi, maxRBreak);
+			expectedAcceleration = maxRBreak;
+		}
+		else
+		{
+			expectedVelocity = 0.0;
+			expectedRotation = angle;
+			expectedAcceleration = 0.0;
+		}
+		
+		return new MotionPosition(expectedRotation, 0.0, expectedVelocity, expectedAcceleration);
+	}	
 	
 	/***
 	 * Return the time that the specified change in velocity occurred assuming the constant acceleration
