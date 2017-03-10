@@ -2,9 +2,12 @@ package org.usfirst.frc.team2522.robot;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
@@ -69,13 +72,7 @@ public class Robot extends IterativeRobot
 	public double expVelocity = 0.0;
 	public double expAcceleration = 0.0;
 	public boolean motionDone = false;
-	
-	
-	Thread visionThread;
-	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
-	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
-	
-	
+		
 	VictorSP leftDrive1 = new VictorSP(0);
 	VictorSP leftDrive2 = new VictorSP(1);
 	VictorSP rightDrive1 = new VictorSP(2);
@@ -155,6 +152,10 @@ public class Robot extends IterativeRobot
 	PrintStream ps = null;
 	Timer motionProfileTimer = new Timer();
 	
+	Thread visionThread;
+	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
+	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
+	
 	CameraServer cameraServer = CameraServer.getInstance();
 	CvSource  cameraStream = null;
 	UsbCamera cameraHigh = null;
@@ -164,6 +165,8 @@ public class Robot extends IterativeRobot
 	boolean showLowCamera = false;
 	boolean showImageBlobs = false;
 	boolean showImageTargets = false;
+	Scalar mHSVLowerBounds = new Scalar(45, 100, 100, 0);
+	Scalar mHSVUpperBounds = new Scalar(75, 255, 255, 255);
 		
 	public void robotInit()
 	{		
@@ -266,8 +269,9 @@ public class Robot extends IterativeRobot
     	
     	
     	visionThread = new Thread(() -> {
-			Mat mat = new Mat();    		
-    		
+			Mat src_image = new Mat();
+			Mat hsv_image = new Mat();
+			Mat msk_image = new Mat();    		
     		
     		while (!Thread.interrupted()) {
     			if (showLowCamera)
@@ -286,16 +290,36 @@ public class Robot extends IterativeRobot
         					cameraLowSink = cameraServer.getVideo(cameraLow);
         				}
         				
-    					if (cameraLowSink.grabFrame(mat) == 0)
+    					if (cameraLowSink.grabFrame(src_image) == 0)
     					{
-    						Mat hsv_image = new Mat();
-    						
     						cameraStream.notifyError(cameraLowSink.getError());
     						System.out.println(cameraLowSink.getError());
     					}
     					else
     					{
-    						cameraStream.putFrame(mat);
+    						Imgproc.cvtColor(src_image, hsv_image, Imgproc.COLOR_RGB2HSV_FULL);
+    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
+    						
+    						List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+    						
+    						Imgproc.findContours(msk_image, contours, null, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+    						
+    						String rects = "";
+    						for(int i = 0; i < contours.size(); i++) {
+//    							approxPolyDP(contours.get(i), a)
+    							rects = rects + contours.get(i).rows() + "," + contours.get(i).cols() + ";"; 
+    						}
+    						SmartDashboard.putNumber("RectCount", contours.size());
+    						SmartDashboard.putString("RectSizes", rects);
+    						
+    						if (showImageBlobs)
+    						{
+        						cameraStream.putFrame(msk_image);
+    						}
+    						else
+    						{
+    							cameraStream.putFrame(src_image);
+    						}
     					}
     				}
     			}
@@ -315,17 +339,17 @@ public class Robot extends IterativeRobot
         					cameraHighSink = cameraServer.getVideo(cameraHigh);
         				}
 
-        				if (cameraHighSink.grabFrame(mat) == 0)
+        				if (cameraHighSink.grabFrame(src_image) == 0)
     					{
     						cameraStream.notifyError(cameraHighSink.getError());
     						System.out.println(cameraHighSink.getError());
     					}
     					else
     					{
-    						Imgproc.rectangle(mat, new Point(100, 100), new Point(400, 400),
+    						Imgproc.rectangle(src_image, new Point(100, 100), new Point(400, 400),
     								new Scalar(255, 255, 255), 5);
 
-    						cameraStream.putFrame(mat);
+    						cameraStream.putFrame(src_image);
     					}
     				}
     			}
@@ -878,6 +902,9 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putBoolean("Gear Draps Up", gearDrapes.get() == DoubleSolenoid.Value.kForward);
 		SmartDashboard.putBoolean("Gear Push Out", gearPushout.get() == DoubleSolenoid.Value.kForward);
 		
+		//
+		// Camera Settings
+		//
 		double exposure = SmartDashboard.getNumber("Camera Exposure", 1.0);
 		if (exposure != currentExposure)
 		{
@@ -912,6 +939,27 @@ public class Robot extends IterativeRobot
 			currentWhiteBalance = whiteBalance;
 		}
 		
+		int hsvLowerHue = (int)SmartDashboard.getNumber("H Lower", 45.0);
+		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 100.0);
+		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 100.0);		
+		if ((mHSVLowerBounds.val[0] != hsvLowerHue) || (mHSVLowerBounds.val[1] != hsvLowerSat) || (mHSVLowerBounds.val[2] != hsvLowerVal))
+		{
+			mHSVLowerBounds = new Scalar(hsvLowerHue, hsvLowerSat, hsvLowerVal, 0);
+			SmartDashboard.putNumber("H Lower", hsvLowerHue);
+			SmartDashboard.putNumber("S Lower", hsvLowerSat);
+			SmartDashboard.putNumber("V Lower", hsvLowerVal);
+		}
+		
+		int hsvUpperHue = (int)SmartDashboard.getNumber("H Upper", 75.0);
+		int hsvUpperSat = (int)SmartDashboard.getNumber("S Upper", 255.0);
+		int hsvUpperVal = (int)SmartDashboard.getNumber("V Upper", 255.0);
+		if ((mHSVUpperBounds.val[0] != hsvUpperHue) || (mHSVUpperBounds.val[1] != hsvUpperSat) || (mHSVUpperBounds.val[2] != hsvUpperVal))
+		{
+			mHSVUpperBounds = new Scalar(hsvUpperHue, hsvUpperSat, hsvUpperVal, 0);
+			SmartDashboard.putNumber("H Upper", hsvUpperHue);
+			SmartDashboard.putNumber("S Upper", hsvUpperSat);
+			SmartDashboard.putNumber("V Upper", hsvUpperVal);
+		}
 	}
 	
 }
