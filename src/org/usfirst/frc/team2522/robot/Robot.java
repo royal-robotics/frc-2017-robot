@@ -68,6 +68,7 @@ public class Robot extends IterativeRobot
 	public double expDistance = 0.0;
 	public double expVelocity = 0.0;
 	public double expAcceleration = 0.0;
+	public boolean motionDone = false;
 	
 	
 	Thread visionThread;
@@ -115,7 +116,9 @@ public class Robot extends IterativeRobot
 	//
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
 	Button cameraLowButton = new Button(leftStick, 2, ButtonType.Hold);
-	Button driveStraightButton = new Button(leftStick, 3, ButtonType.Hold);
+
+	Button testDriveDistanceButton = new Button(leftStick, 11, ButtonType.Hold);
+	Button testDriveRotateButton = new Button(leftStick, 10, ButtonType.Hold);
 	
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
@@ -285,6 +288,8 @@ public class Robot extends IterativeRobot
         				
     					if (cameraLowSink.grabFrame(mat) == 0)
     					{
+    						Mat hsv_image = new Mat();
+    						
     						cameraStream.notifyError(cameraLowSink.getError());
     						System.out.println(cameraLowSink.getError());
     					}
@@ -471,6 +476,8 @@ public class Robot extends IterativeRobot
 	public void autonomousInit()
 	{
 		this.resetMotion();
+
+		AutonomousController.autoStep = 0;
 	}
 
 	/**
@@ -478,7 +485,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void autonomousPeriodic()
 	{
-	
+		AutonomousController.periodic(this);
 	}
 	
 	/**
@@ -510,21 +517,33 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopPeriodic()
 	{
-		if (driveStraightButton.isPressed())
+		if (testDriveDistanceButton.isPressed())
 		{
 			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 			SmartDashboard.putNumber("Test Drive Distance", dist);
-			AutonomousController.rotateTo(this, dist);
-			//AutonomousController.driveTo(this, dist);
+
+			if (!this.motionDone)
+			{
+				this.motionDone = AutonomousController.driveTo(this, dist);
+			}
 
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
 			//myDrive.tankDrive(-power, -power, false);
 		}
+		else if (testDriveRotateButton.isPressed())
+		{
+			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
+			SmartDashboard.putNumber("Test Drive Distance", dist);
+			if (!this.motionDone)
+			{
+				this.motionDone = AutonomousController.rotateTo(this, dist);
+			}
+		}
 		else
 		{
 			boolean updateDriveStraightBearing = true;
-			
+
 			if (!wheelDrive)
 			{
 				myDrive.tankDrive(leftStick, rightStick, true);
@@ -555,7 +574,7 @@ public class Robot extends IterativeRobot
 					}
 					else
 					{
-						if (Math.abs(leftPower) > 0.05)
+						if (Math.abs(leftPower) > 0.07)
 						{
 							AutonomousController.driveForward(this, AutonomousController.motionStartBearing, -leftPower);
 							updateDriveStraightBearing = false;
@@ -568,6 +587,7 @@ public class Robot extends IterativeRobot
 				}
 			}
 			
+			this.motionDone = false;
 			AutonomousController.motionStartTime = 0.0;  // TODO: remove this after testing.
 			AutonomousController.motionStartDistance = this.getDistance();
 			if (updateDriveStraightBearing)
@@ -828,6 +848,10 @@ public class Robot extends IterativeRobot
 	public void writeDashboard()
 	{
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
+
+		
+		SmartDashboard.putNumber("AutoMode", AutonomousController.getAutoMode());
+		SmartDashboard.putNumber("AutoStep", AutonomousController.autoStep);
 		
 		SmartDashboard.putNumber("Angle", this.getCurrentAngle());
 		SmartDashboard.putNumber("Bearing", this.getBearing());

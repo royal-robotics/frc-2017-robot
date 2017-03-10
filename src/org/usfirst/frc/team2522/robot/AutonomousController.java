@@ -12,6 +12,53 @@ public final class AutonomousController
 	public static double motionStartTime = 0.0;
 	public static double motionStartDistance = 0.0;
 	public static double motionStartBearing = 0.0;
+
+	public static int autoMode = 0;
+	public static int autoStep = 0;
+	
+
+	public static int getAutoMode()
+	{
+		return 1;
+	}
+	
+
+	public static void periodic(Robot robot)
+	{
+		if (getAutoMode() == 1)
+		{
+			auto1(robot);
+		}
+	}
+	
+	public static void auto1(Robot robot)
+	{
+		if (autoStep == 0) 
+		{
+			if (driveTo(robot, 68.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 1)
+		{
+			if (rotateTo(robot, -65.0))
+			{
+				autoStep++;
+			}
+		}
+//		else if (autoStep == 2)
+//		{
+//			if (driveTo(robot, 50.0))
+//			{
+//				autoStep++;
+//			}
+//		}
+		else
+		{
+			robot.myDrive.tankDrive(0.0, 0.0);
+		}
+	}
 	
 	public static boolean rotateTo(Robot robot, double angle)
 	{
@@ -23,6 +70,8 @@ public final class AutonomousController
 		if (motionStartTime == 0.0) 
 		{
 			motionStartTime = robot.getTime();
+			motionStartDistance = robot.getDistance();
+			motionStartBearing = robot.getBearing();
 			leftPower = 0.0;
 			rightPower = 0.0;
 		}
@@ -64,20 +113,27 @@ public final class AutonomousController
 				// Calculate the current velocity and distance errors and average the adjustment between them.
 				//
 				double vError = robot.getRotationVelocity() - p.velocity;
+				power += (robot.kRVp * vError);
+
 				double dError = (robot.getBearing() - motionStartBearing) - p.bearing;
-				power += ((robot.kRVp * vError) + (robot.kRBp * dError)) / 2.0;
+				if (dError != 0.0 && p.velocity == 0.0)
+				{
+					power -= (robot.kRVp * vError);
+				}
+				power += (robot.kRBp * dError);
 				
 				leftPower = power; 
 				rightPower = -power;
 			}
 		}		
 		
-//		if ((Math.abs((robot.getRawBearing() - motionStartBearing) - angle) < 1.0) && (Math.abs(robot.getRotationVelocity()) < 1.0))
-//		{
-//			finished = true;
-//			leftPower = 0;				
-//			rightPower = 0;
-//		}
+		if ((Math.abs((robot.getBearing() - motionStartBearing) - angle) < 1.5) && (Math.abs(robot.getRotationVelocity()) < 1.5))
+		{
+			motionStartTime = 0.0;
+			finished = true;
+			leftPower = 0;				
+			rightPower = 0;
+		}
 		
 		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
 
@@ -98,6 +154,8 @@ public final class AutonomousController
 		if (motionStartTime == 0.0) 
 		{
 			motionStartTime = robot.getTime();
+			motionStartDistance = robot.getDistance();
+			motionStartBearing = robot.getBearing();
 			leftPower = 0.0;
 			rightPower = 0.0;
 		}
@@ -141,8 +199,14 @@ public final class AutonomousController
 				// Calculate the current velocity and distance errors and average the adjustment between them.
 				//
 				double vError = robot.getVelocity() - p.velocity;
+				power += (robot.kVp * vError);
+
 				double dError = (robot.getDistance() - motionStartDistance) - p.distance;
-				power += ((robot.kVp * vError) + (robot.kDp * dError)) / 2.0;
+				if (dError != 0.0 && p.velocity == 0.0)
+				{
+					power -= (robot.kVp * vError);
+				}
+				power += (robot.kDp * dError);
 				
 				leftPower = power; 
 				rightPower = power;
@@ -181,12 +245,19 @@ public final class AutonomousController
 			}
 		}
 		
-//		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.0) && (Math.abs(robot.getVelocity()) < 1.0))
-//		{
-//			finished = true;
-//			leftPower = 0;				
-//			rightPower = 0;
-//		}
+		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.5) && (Math.abs(robot.getVelocity()) < 0.5))
+		{
+			motionStartTime = 0.0;
+			finished = true;
+			leftPower = 0;				
+			rightPower = 0;
+		}
+		else
+		{
+			SmartDashboard.putNumber("AutoDE", Math.abs((robot.getDistance() - motionStartDistance) - distance));
+			SmartDashboard.putNumber("AutoDV", Math.abs(robot.getVelocity()));
+		}
+
 		
 		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
 		
