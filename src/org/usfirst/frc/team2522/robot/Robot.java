@@ -1,14 +1,22 @@
 package org.usfirst.frc.team2522.robot;
 
+import java.awt.HeadlessException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Core;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
 import com.ctre.CANTalon;
@@ -112,14 +120,18 @@ public class Robot extends IterativeRobot
 	// Driver Controls
 	//
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
-	Button cameraLowButton = new Button(leftStick, 2, ButtonType.Hold);
-
+	
+	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
+	Button showMaskButton  = new Button(leftStick, 8, ButtonType.Toggle);
+	Button showTargetsButton = new Button(leftStick, 9, ButtonType.Toggle);
+	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
+	
 	Button testDriveDistanceButton = new Button(leftStick, 11, ButtonType.Hold);
 	Button testDriveRotateButton = new Button(leftStick, 10, ButtonType.Hold);
 	
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
-	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);	
+	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);
 
 	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
 	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
@@ -271,7 +283,8 @@ public class Robot extends IterativeRobot
     	visionThread = new Thread(() -> {
 			Mat src_image = new Mat();
 			Mat hsv_image = new Mat();
-			Mat msk_image = new Mat();    		
+			Mat msk_image = new Mat();
+			Mat hierarchy = new Mat();
     		
     		while (!Thread.interrupted()) {
     			if (showLowCamera)
@@ -346,10 +359,115 @@ public class Robot extends IterativeRobot
     					}
     					else
     					{
-    						Imgproc.rectangle(src_image, new Point(100, 100), new Point(400, 400),
-    								new Scalar(255, 255, 255), 5);
+    						Imgproc.cvtColor(src_image, hsv_image, Imgproc.COLOR_RGB2HSV_FULL);
+    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
 
-    						cameraStream.putFrame(src_image);
+    						
+    						
+//    						try 
+//    						{
+//        						File f = new File("/home/lvuser/BlobDectorParameters.xml");
+//    							f.delete();
+//
+//        						ps = new PrintStream(f);
+//    						
+//    							ps.println(
+//								"<?xml version=\"1.0\"?>\n" +
+//    							"<opencv_storage>\n" +
+//    							"<format>3</format>\n" +
+//    							"<filterByColor>1</filterByColor>\n" +
+//    							"<blobColor>0</blobColor>\n" +
+//    							"<filterByArea>1</filterByArea>\n" +
+//    							"<minArea>10</minArea>\n" +
+//    							"<maxArea>100000.</maxArea>\n" +
+//    							"<filterByInertia>1</filterByInertia>\n" +
+//    							"<minInertiaRatio>1.0000000149011612e-01</minInertiaRatio>\n" +
+//    							"<maxInertiaRatio>3.4028234663852886e+38</maxInertiaRatio>\n" +
+//    							"</opencv_storage>");
+//    							
+//    							ps.close();
+//     						
+//    						}
+//    						catch(IOException e)
+//    						{
+//    							ps = null;
+//    							e.printStackTrace();
+//    						}
+//
+//    						FeatureDetector detector = FeatureDetector.create(FeatureDetector.SIMPLEBLOB);
+//    						detector.read("/home/lvuser/BlobDectorParameters.xml");
+//    						MatOfKeyPoint keypoints = new MatOfKeyPoint();
+//    						detector.detect(msk_image, keypoints);
+//    						
+//    						String s = "";
+//    						KeyPoint[] points = keypoints.toArray();
+//    						for(int i = 0; i < points.length; i++)
+//    						{
+//    							s = s + points[i].pt.x + "," + points[i].pt.y + ";"; 
+//    						}
+
+    						
+    						List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+    						Imgproc.findContours(msk_image, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
+
+    						PrintStream ps = null;
+    						if (takeImageButton.isPressed())
+    						{
+        						try 
+        						{
+            						File f = new File("/home/lvuser/ImageRects0.txt");
+            						for(int i = 0; f.exists(); i++)
+            						{
+            							f = new File("/home/lvuser/ImageRects" + i + ".txt");
+            						}
+    
+            						ps = new PrintStream(f);
+        						}
+        						catch(IOException e)
+        						{
+        							ps = null;
+        							e.printStackTrace();
+        						}
+    						}
+    						
+    						String s = "";
+    						int count = 0;
+    						for(int i = 0; i < contours.size(); i++)
+    						{
+	    						Rect r = Imgproc.boundingRect(contours.get(i));
+
+	    						if (ps != null)
+	    						{
+	    							ps.println(""+r.x +"\t"+r.y +"\t"+r.width +"\t"+r.height);
+	    						}
+	    
+	    						
+	    						if ((r.width > 4) && (r.height > 4))
+	    						{
+	    							count++;
+		    						Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 5);
+		    						s = s + "{" + r.x + "," + r.y + "," + r.width + "," + r.height+"}";
+	    						}
+    						}
+    						
+    						if (ps != null)
+    						{
+    							ps.close();
+    						}
+    						
+    						SmartDashboard.putNumber("RectCount", count);
+    						SmartDashboard.putString("RectSizes", s);
+    						
+    						if (showImageBlobs)
+    						{
+        						cameraStream.putFrame(msk_image);
+    						}
+    						else
+    						{
+    							cameraStream.putFrame(src_image);
+    						}
     					}
     				}
     			}
@@ -368,13 +486,19 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
-		if (cameraLowButton.isPressed())
+		if (switchCameras.isPressed())
 		{
-			showLowCamera = true;
+			showLowCamera = ! showLowCamera;
 		}
-		else
+		
+		if (showMaskButton.isPressed())
 		{
-			showLowCamera = false;
+			showImageBlobs = ! showImageBlobs;
+		}
+		
+		if (showTargetsButton.isPressed())
+		{
+			showImageTargets = ! showImageTargets;
 		}
 	
 		
