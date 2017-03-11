@@ -168,17 +168,11 @@ public class Robot extends IterativeRobot
 	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
 	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
 	
-	CameraServer cameraServer = CameraServer.getInstance();
-	CvSource  cameraStream = null;
 	UsbCamera cameraHigh = null;
 	UsbCamera cameraLow = null;
-	CvSink cameraHighSink = null;
-	CvSink cameraLowSink = null;
 	boolean showLowCamera = false;
 	boolean showImageBlobs = false;
 	boolean showImageTargets = false;
-	Scalar mHSVLowerBounds = new Scalar(45, 100, 100, 0);
-	Scalar mHSVUpperBounds = new Scalar(75, 255, 255, 255);
 		
 	public void robotInit()
 	{		
@@ -236,249 +230,33 @@ public class Robot extends IterativeRobot
     	gearPushout.set(DoubleSolenoid.Value.kForward);
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);
     	shooterHood.set(DoubleSolenoid.Value.kReverse);
-    	
-    	
-		cameraStream = cameraServer.putVideo("camera", 640, 480);
 
-		cameraHigh = new UsbCamera("cam0", 0);
-	   	cameraLow = new UsbCamera("cam1", 1);
-    	
-    	if (cameraHigh != null)
-    	{
-    		cameraHigh.setResolution(640, 480);			
-	    	
-    		if (!cameraHigh.isConnected())
-	    	{
-	        	System.out.println("High Camera Not Connected.");
-	        	cameraHigh.free();
-	        	cameraHigh = null;
-	    	}
-    		else
-    		{
-//				cameraServer.startAutomaticCapture(cameraHigh);
-				cameraServer.addCamera(cameraHigh);
-				cameraHighSink = cameraServer.getVideo(cameraHigh);
-    		}
-    	}
-    	
-    	if (cameraLow != null)
-    	{
-    		cameraLow.setResolution(640, 480);
-	    	
-    		if (!cameraLow.isConnected())
-	    	{
-	        	System.out.println("Low Camera Not Connected.");
-	        	cameraLow.free();
-	        	cameraLow = null;
-	    	}
-    		else
-    		{
-	    		cameraServer.addCamera(cameraLow);
-				cameraLowSink = cameraServer.getVideo(cameraLow);
-    		}
-    	}
+    	// Init Motion Control Values
+		//
+    	this.resetMotion();
 
     	
+    	// Init Vision Processing Loop
+    	//
+    	cameraLow = ImageUtils.getCamera(0,  "Low");    	
+    	cameraHigh = ImageUtils.getCamera(1,  "High");
     	
+    	ImageUtils.setCamera(cameraLow);
+
     	visionThread = new Thread(() -> {
-			Mat src_image = new Mat();
-			Mat hsv_image = new Mat();
-			Mat msk_image = new Mat();
-			Mat hierarchy = new Mat();
-    		
     		while (!Thread.interrupted()) {
-    			if (showLowCamera)
+    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
     			{
-    				if (cameraLow != null)
-    				{
-        				if (cameraHighSink != null)
-        				{
-        					cameraServer.removeServer("opencv_" + cameraHigh.getName());
-        					cameraHighSink.free();
-        					cameraHighSink = null;
-        				}
-        				
-        				if (cameraLowSink == null)
-        				{
-        					cameraLowSink = cameraServer.getVideo(cameraLow);
-        				}
-        				
-    					if (cameraLowSink.grabFrame(src_image) == 0)
-    					{
-    						cameraStream.notifyError(cameraLowSink.getError());
-    						System.out.println(cameraLowSink.getError());
-    					}
-    					else
-    					{
-    						Imgproc.cvtColor(src_image, hsv_image, Imgproc.COLOR_RGB2HSV_FULL);
-    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
-    						
-    						List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-    						
-    						Imgproc.findContours(msk_image, contours, null, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-    						
-    						String rects = "";
-    						for(int i = 0; i < contours.size(); i++) {
-//    							approxPolyDP(contours.get(i), a)
-    							rects = rects + contours.get(i).rows() + "," + contours.get(i).cols() + ";"; 
-    						}
-    						SmartDashboard.putNumber("RectCount", contours.size());
-    						SmartDashboard.putString("RectSizes", rects);
-    						
-    						if (showImageBlobs)
-    						{
-        						cameraStream.putFrame(msk_image);
-    						}
-    						else
-    						{
-    							cameraStream.putFrame(src_image);
-    						}
-    					}
-    				}
+    				ImageUtils.processFrame(2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
     			}
-    			else
+    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
     			{
-    				if (cameraHigh != null)
-    				{
-        				if (cameraLowSink != null)
-        				{
-        					cameraServer.removeServer("opencv_" + cameraLow.getName());
-        					cameraLowSink.free();
-        					cameraLowSink = null;
-        				}
-        				
-        				if (cameraHighSink == null)
-        				{
-        					cameraHighSink = cameraServer.getVideo(cameraHigh);
-        				}
-
-        				if (cameraHighSink.grabFrame(src_image) == 0)
-    					{
-    						cameraStream.notifyError(cameraHighSink.getError());
-    						System.out.println(cameraHighSink.getError());
-    					}
-    					else
-    					{
-    						Imgproc.cvtColor(src_image, hsv_image, Imgproc.COLOR_RGB2HSV_FULL);
-    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
-
-    						
-    						
-//    						try 
-//    						{
-//        						File f = new File("/home/lvuser/BlobDectorParameters.xml");
-//    							f.delete();
-//
-//        						ps = new PrintStream(f);
-//    						
-//    							ps.println(
-//								"<?xml version=\"1.0\"?>\n" +
-//    							"<opencv_storage>\n" +
-//    							"<format>3</format>\n" +
-//    							"<filterByColor>1</filterByColor>\n" +
-//    							"<blobColor>0</blobColor>\n" +
-//    							"<filterByArea>1</filterByArea>\n" +
-//    							"<minArea>10</minArea>\n" +
-//    							"<maxArea>100000.</maxArea>\n" +
-//    							"<filterByInertia>1</filterByInertia>\n" +
-//    							"<minInertiaRatio>1.0000000149011612e-01</minInertiaRatio>\n" +
-//    							"<maxInertiaRatio>3.4028234663852886e+38</maxInertiaRatio>\n" +
-//    							"</opencv_storage>");
-//    							
-//    							ps.close();
-//     						
-//    						}
-//    						catch(IOException e)
-//    						{
-//    							ps = null;
-//    							e.printStackTrace();
-//    						}
-//
-//    						FeatureDetector detector = FeatureDetector.create(FeatureDetector.SIMPLEBLOB);
-//    						detector.read("/home/lvuser/BlobDectorParameters.xml");
-//    						MatOfKeyPoint keypoints = new MatOfKeyPoint();
-//    						detector.detect(msk_image, keypoints);
-//    						
-//    						String s = "";
-//    						KeyPoint[] points = keypoints.toArray();
-//    						for(int i = 0; i < points.length; i++)
-//    						{
-//    							s = s + points[i].pt.x + "," + points[i].pt.y + ";"; 
-//    						}
-
-    						
-    						List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-    						Imgproc.findContours(msk_image, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-
-    						Core.inRange(hsv_image, mHSVLowerBounds, mHSVUpperBounds, msk_image);
-
-    						PrintStream ps = null;
-    						if (takeImageButton.isPressed())
-    						{
-        						try 
-        						{
-            						File f = new File("/home/lvuser/ImageRects0.txt");
-            						for(int i = 0; f.exists(); i++)
-            						{
-            							f = new File("/home/lvuser/ImageRects" + i + ".txt");
-            						}
-    
-            						ps = new PrintStream(f);
-        						}
-        						catch(IOException e)
-        						{
-        							ps = null;
-        							e.printStackTrace();
-        						}
-    						}
-    						
-    						String s = "";
-    						int count = 0;
-    						for(int i = 0; i < contours.size(); i++)
-    						{
-	    						Rect r = Imgproc.boundingRect(contours.get(i));
-
-	    						if (ps != null)
-	    						{
-	    							ps.println(""+r.x +"\t"+r.y +"\t"+r.width +"\t"+r.height);
-	    						}
-	    
-	    						
-	    						if ((r.width > 4) && (r.height > 4))
-	    						{
-	    							count++;
-		    						Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 5);
-		    						s = s + "{" + r.x + "," + r.y + "," + r.width + "," + r.height+"}";
-	    						}
-    						}
-    						
-    						if (ps != null)
-    						{
-    							ps.close();
-    						}
-    						
-    						SmartDashboard.putNumber("RectCount", count);
-    						SmartDashboard.putString("RectSizes", s);
-    						
-    						if (showImageBlobs)
-    						{
-        						cameraStream.putFrame(msk_image);
-    						}
-    						else
-    						{
-    							cameraStream.putFrame(src_image);
-    						}
-    					}
-    				}
+    				ImageUtils.processFrame(2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
     			}
     		}
     	});
     	
 		visionThread.start();
-
-		// Init Motion Control Values
-		//
-    	this.resetMotion();
 	}
 
 	/**
@@ -488,7 +266,14 @@ public class Robot extends IterativeRobot
 	{
 		if (switchCameras.isPressed())
 		{
-			showLowCamera = ! showLowCamera;
+			if ((ImageUtils.camera == cameraLow) && (cameraHigh != null))
+			{
+				ImageUtils.setCamera(cameraHigh);
+			}
+			else
+			{
+				ImageUtils.setCamera(cameraLow);
+			}
 		}
 		
 		if (showMaskButton.isPressed())
@@ -1066,9 +851,9 @@ public class Robot extends IterativeRobot
 		int hsvLowerHue = (int)SmartDashboard.getNumber("H Lower", 45.0);
 		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 100.0);
 		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 100.0);		
-		if ((mHSVLowerBounds.val[0] != hsvLowerHue) || (mHSVLowerBounds.val[1] != hsvLowerSat) || (mHSVLowerBounds.val[2] != hsvLowerVal))
+		if ((ImageUtils.hsvLowerBounds.val[0] != hsvLowerHue) || (ImageUtils.hsvLowerBounds.val[1] != hsvLowerSat) || (ImageUtils.hsvLowerBounds.val[2] != hsvLowerVal))
 		{
-			mHSVLowerBounds = new Scalar(hsvLowerHue, hsvLowerSat, hsvLowerVal, 0);
+			ImageUtils.hsvLowerBounds = new Scalar(hsvLowerHue, hsvLowerSat, hsvLowerVal, 0);
 			SmartDashboard.putNumber("H Lower", hsvLowerHue);
 			SmartDashboard.putNumber("S Lower", hsvLowerSat);
 			SmartDashboard.putNumber("V Lower", hsvLowerVal);
@@ -1077,9 +862,9 @@ public class Robot extends IterativeRobot
 		int hsvUpperHue = (int)SmartDashboard.getNumber("H Upper", 75.0);
 		int hsvUpperSat = (int)SmartDashboard.getNumber("S Upper", 255.0);
 		int hsvUpperVal = (int)SmartDashboard.getNumber("V Upper", 255.0);
-		if ((mHSVUpperBounds.val[0] != hsvUpperHue) || (mHSVUpperBounds.val[1] != hsvUpperSat) || (mHSVUpperBounds.val[2] != hsvUpperVal))
+		if ((ImageUtils.hsvUpperBounds.val[0] != hsvUpperHue) || (ImageUtils.hsvUpperBounds.val[1] != hsvUpperSat) || (ImageUtils.hsvUpperBounds.val[2] != hsvUpperVal))
 		{
-			mHSVUpperBounds = new Scalar(hsvUpperHue, hsvUpperSat, hsvUpperVal, 0);
+			ImageUtils.hsvUpperBounds = new Scalar(hsvUpperHue, hsvUpperSat, hsvUpperVal, 0);
 			SmartDashboard.putNumber("H Upper", hsvUpperHue);
 			SmartDashboard.putNumber("S Upper", hsvUpperSat);
 			SmartDashboard.putNumber("V Upper", hsvUpperVal);
