@@ -53,17 +53,17 @@ public class Robot extends IterativeRobot
 	
 	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public final double kAf = 0.0039;
-	public final double kBf = 0.0024;
-	public final double kVp = -kVf;
-	public final double kDp = -0.02;
-	public final double kBp = 0.015;
+	public final double kBf = 0.0023;
+	public final double kDp = 0.0200;
+	public final double kDd = 0.0100;
+	public final double kBp = 0.0015;
 
 	
 	public final double kRVf	= 1.0 / 565.0;	// 1 / max rotational velocity
-	public final double kRAf = 0.0010;
-	public final double kRBf = 0.0006;
-	public final double kRVp = -kRVf;
-	public final double kRBp = -0.0015;
+	public final double kRAf = 0.00086; //0.0010;
+	public final double kRBf = 0.00045;
+	public final double kRBp = 0.0015;
+	public final double kRBd = 0.0015;
 	
 	private double lastTime = 0.0;
 	private double lastBearing = 0.0;

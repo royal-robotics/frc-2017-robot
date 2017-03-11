@@ -88,14 +88,7 @@ public class MotionControl
 			break_vi = accl_vf;
 			break_d = distance - accl_d;
 			break_t = getTimeToVelocity(break_vf, break_vi, maxBreak);
-		}
-	SmartDashboard.putNumber("accl_t", accl_t);
-	SmartDashboard.putNumber("accl_d", accl_d);
-	SmartDashboard.putNumber("cruise_t", cruise_t);
-	SmartDashboard.putNumber("cruise_d", cruise_d);
-	SmartDashboard.putNumber("break_t", break_t);
-	SmartDashboard.putNumber("break_d", break_d);
-		
+		}		
 		
 		// Calculate the expected distance and velocity the robot should have achieved by the time specified.
 		//

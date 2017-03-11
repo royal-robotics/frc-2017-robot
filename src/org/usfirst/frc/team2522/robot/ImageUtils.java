@@ -173,7 +173,7 @@ public class ImageUtils
 		{
 			// TOOD: calculate ratio of the height of the targets to distance from target.
 			
-			result = Math.max(rectangles.get(0).height, rectangles.get(1).height) * 
+			//result = Math.max(rectangles.get(0).height, rectangles.get(1).height) * 
 		}
 		
 		return result;

@@ -12,6 +12,8 @@ public final class AutonomousController
 	public static double motionStartTime = 0.0;
 	public static double motionStartDistance = 0.0;
 	public static double motionStartBearing = 0.0;
+	public static double motionLastError = 0.0;
+	public static double motionLastTime = 0.0;
 
 	public static int autoMode = 0;
 	public static int autoStep = 0;
@@ -72,6 +74,8 @@ public final class AutonomousController
 			motionStartTime = robot.getTime();
 			motionStartDistance = robot.getDistance();
 			motionStartBearing = robot.getBearing();
+			motionLastError = 0.0;
+			motionLastTime = 0.0;
 			leftPower = 0.0;
 			rightPower = 0.0;
 		}
@@ -110,17 +114,16 @@ public final class AutonomousController
 					power += robot.kRBf * p.acceleration;
 				}
 
-				// Calculate the current velocity and distance errors and average the adjustment between them.
+				// Calculate the distance proportional and derivative error.
 				//
-				double vError = robot.getRotationVelocity() - p.velocity;
-				power += (robot.kRVp * vError);
+				double error = p.bearing - (robot.getBearing() - motionStartBearing);
+				power += (robot.kRBp * error);
 
-				double dError = (robot.getBearing() - motionStartBearing) - p.bearing;
-				if (dError != 0.0 && p.velocity == 0.0)
-				{
-					power -= (robot.kRVp * vError);
-				}
-				power += (robot.kRBp * dError);
+				double dError = (error - motionLastError) / (t - motionLastTime) - p.velocity;
+				power += (robot.kRBd * dError);
+
+				motionLastError = error;
+				motionLastTime = t;
 				
 				leftPower = power; 
 				rightPower = -power;
@@ -196,25 +199,24 @@ public final class AutonomousController
 					power += robot.kBf * p.acceleration;
 				}
 
-				// Calculate the current velocity and distance errors and average the adjustment between them.
+				// Calculate the distance proportional and derivative error.
 				//
-				double vError = robot.getVelocity() - p.velocity;
-				power += (robot.kVp * vError);
+				double error = p.distance - (robot.getDistance() - motionStartDistance);
+				power += (robot.kDp * error);
 
-				double dError = (robot.getDistance() - motionStartDistance) - p.distance;
-				if (dError != 0.0 && p.velocity == 0.0)
-				{
-					power -= (robot.kVp * vError);
-				}
-				power += (robot.kDp * dError);
+				double dError = (error - motionLastError) / (t - motionLastTime) - p.velocity;
+				power += (robot.kDd * dError);
+
+				motionLastError = error;
+				motionLastTime = t;
 				
 				leftPower = power; 
 				rightPower = power;
 				
 				// Calculate the current bearing error and apply the proportional error adjustment 				
-				double bError = robot.getBearing() - p.bearing;
-				double leftAdj = -robot.kBp * bError;
-				double rightAdj = robot.kBp * bError;
+				double bError = p.bearing - robot.getBearing();
+				double leftAdj =  robot.kBp * bError;
+				double rightAdj = -robot.kBp * bError;
 				
 				if (leftPower + leftAdj > 1.0)
 				{
@@ -245,7 +247,7 @@ public final class AutonomousController
 			}
 		}
 		
-		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.5) && (Math.abs(robot.getVelocity()) < 0.5))
+		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.5) && (Math.abs(robot.getVelocity()) < 1.5))
 		{
 			motionStartTime = 0.0;
 			finished = true;
