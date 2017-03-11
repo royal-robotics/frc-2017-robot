@@ -55,7 +55,7 @@ public class Robot extends IterativeRobot
 	public final double kAf = 0.0039;
 	public final double kBf = 0.0023;
 	public final double kDp = 0.0200;
-	public final double kDd = 0.0100;
+	public final double kDd = 0.0000;
 	public final double kBp = 0.0015;
 
 	
@@ -63,7 +63,7 @@ public class Robot extends IterativeRobot
 	public final double kRAf = 0.00086; //0.0010;
 	public final double kRBf = 0.00045;
 	public final double kRBp = 0.0015;
-	public final double kRBd = 0.0015;
+	public final double kRBd = 0.0000;
 	
 	private double lastTime = 0.0;
 	private double lastBearing = 0.0;
