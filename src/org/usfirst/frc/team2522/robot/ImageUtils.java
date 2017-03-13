@@ -48,6 +48,7 @@ public class ImageUtils
 	    	{
 	        	System.out.println(name + " Camera Not Connected.");
 	        	camera.free();
+	        	camera = null;
 	    	}
     		else
     		{
@@ -121,6 +122,8 @@ public class ImageUtils
 						}
 	
 						SmartDashboard.putString("Image-Rects", s);
+						SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(rectangles));
+						SmartDashboard.putNumber("Target-Error", getPegTargetBearing(rectangles));
 					}
 					
 					ImageUtils.cameraStream.putFrame(src_image);
@@ -169,11 +172,35 @@ public class ImageUtils
 	{
 		double result = -1.0;
 		
-		if ((rectangles.size() == 2) && (Math.abs(rectangles.get(0).y - rectangles.get(1).y) < 4))
+		if (rectangles.size() == 2)
 		{
-			// TOOD: calculate ratio of the height of the targets to distance from target.
-			
-			//result = Math.max(rectangles.get(0).height, rectangles.get(1).height) * 
+			result = Math.max(rectangles.get(0).height, rectangles.get(1).height) * -0.7869 + 103.7; 
+		}
+		
+		return result;
+	}
+	
+	public static double getPegRotationError()
+	{
+		double result = -999.0;
+		
+		if (ImageUtils.cameraSink != null)
+		{
+			if (ImageUtils.cameraSink.grabFrame(src_image) == 0)
+			{
+				ImageUtils.cameraStream.notifyError(ImageUtils.cameraSink.getError());
+				System.out.println(ImageUtils.cameraSink.getError());
+			}
+			else
+			{
+				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0);
+				double pe = getPegTargetBearing(rectangles);
+				
+				double a = 72.0;
+				double b = pe * 10.5 / 68.0;
+				
+				result = Math.toDegrees(Math.atan(b / a));
+			}
 		}
 		
 		return result;
@@ -184,6 +211,14 @@ public class ImageUtils
 		double result = -1.0;
 		
 		// TODO: do triangle math with distance and pixels off center to find bearing correction.
+		if (rectangles.size() == 2)
+		{
+			int left = Math.min(rectangles.get(0).x, rectangles.get(1).x);
+			int right = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width);
+			int center = left + ((right - left) / 2);
+			
+			result = center - (imageWidth / 2); 
+		}
 		
 		return result;
 	}
@@ -235,6 +270,7 @@ public class ImageUtils
 			}
 			
 			ps.close();
+			ps = null;
 		}
 	}
 	

@@ -1,5 +1,6 @@
 package org.usfirst.frc.team2522.robot;
 
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -17,7 +18,9 @@ public final class AutonomousController
 
 	public static int autoMode = 0;
 	public static int autoStep = 0;
-	
+
+	public static double autoRotation = 0.0;
+	public static boolean autoIsDriving = false;
 
 	public static int getAutoMode()
 	{
@@ -29,11 +32,19 @@ public final class AutonomousController
 	{
 		if (getAutoMode() == 1)
 		{
-			auto1(robot);
+			auto_1_1(robot);
+		}
+		else if (getAutoMode() == 2)
+		{
+			auto_2_1(robot);
 		}
 	}
 	
-	public static void auto1(Robot robot)
+	/**
+	 * 
+	 * @param robot
+	 */
+	public static void auto_1_1(Robot robot)
 	{
 		if (autoStep == 0) 
 		{
@@ -44,18 +55,185 @@ public final class AutonomousController
 		}
 		else if (autoStep == 1)
 		{
-			if (rotateTo(robot, -65.0))
+			if (rotateTo(robot, -60.0, 200, 450))
 			{
 				autoStep++;
 			}
 		}
-//		else if (autoStep == 2)
-//		{
-//			if (driveTo(robot, 50.0))
-//			{
-//				autoStep++;
-//			}
-//		}
+		else if (autoStep == 2) 
+		{
+			ImageUtils.setCamera(robot.cameraLow);
+			autoRotation = ImageUtils.getPegRotationError();
+			while(autoRotation == -999.0)
+			{
+				autoRotation = ImageUtils.getPegRotationError();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 3)
+		{
+			if (rotateTo(robot, autoRotation))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 4) 
+		{
+			if (driveTo(robot, 50.0))
+			{
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				autoStep++;
+			}
+		}
+		else if (autoStep == 5) 
+		{
+			if (driveTo(robot, 20.0, 150, 80.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 6) 
+		{
+			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
+			try {
+				Thread.sleep(350);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 7) 
+		{
+			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 8) 
+		{
+			if (driveTo(robot, -5.0, 35.0, 50.0))
+			{
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				autoStep++;
+			}
+		}
+		else if (autoStep == 9) 
+		{
+			if (driveTo(robot, -30.0, 35.0, 35.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 10) 
+		{
+			if (rotateTo(robot, 180, 200, 450))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 11) 
+		{
+			if (driveTo(robot, 80.0))
+			{
+				autoStep++;
+			}
+		}
+		else
+		{
+			robot.myDrive.tankDrive(0.0, 0.0);
+		}
+	}
+	
+	public static void auto_2_1(Robot robot)
+	{
+		if (autoStep == 0)
+		{
+			if (driveTo(robot, 24.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 1) 
+		{
+			ImageUtils.setCamera(robot.cameraLow);
+			autoRotation = ImageUtils.getPegRotationError();
+			while(autoRotation == -999.0)
+			{
+				autoRotation = ImageUtils.getPegRotationError();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 2)
+		{
+			if (rotateTo(robot, autoRotation))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 3) 
+		{
+			if (driveTo(robot, 52.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 4) 
+		{
+			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
+			try {
+				Thread.sleep(250);
+				autoStep++;
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else if (autoStep == 5) 
+		{
+			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 6) 
+		{
+			if (driveTo(robot, -5.0, 35.0, 50.0))
+			{
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				autoStep++;
+			}
+		}
+		else if (autoStep == 7) 
+		{
+			if (driveTo(robot, -30.0, 35.0, 35.0))
+			{
+				autoStep++;
+			}
+		}
 		else
 		{
 			robot.myDrive.tankDrive(0.0, 0.0);
@@ -64,206 +242,42 @@ public final class AutonomousController
 	
 	public static boolean rotateTo(Robot robot, double angle)
 	{
-		boolean finished = false;
-		
-		double leftPower = robot.leftDrive1.get(); 
-		double rightPower = robot.rightDrive1.get(); 
-
-		if (motionStartTime == 0.0) 
-		{
-			motionStartTime = robot.getTime();
-			motionStartDistance = robot.getDistance();
-			motionStartBearing = robot.getBearing();
-			motionLastError = 0.0;
-			motionLastTime = 0.0;
-			leftPower = 0.0;
-			rightPower = 0.0;
-		}
-		else 
-		{
-			double t = robot.getTime() - motionStartTime;
-			
-			if (t >= robot.robotSampleRate)
-			{
-				double maxRAcc = 300.0;
-				
-				if (angle < 0.0)
-				{
-					maxRAcc = -maxRAcc;
-				}
-				
-				MotionPosition p = MotionControl.getExpectedRotationPosition(t, angle, maxRAcc);
-				
-				robot.motionTime = t;
-				robot.expBearing = p.bearing + motionStartBearing;
-				robot.expDistance = 0.0;
-				robot.expVelocity = p.velocity;
-				robot.expAcceleration = p.acceleration;
-				
-				// Set the power to the expected velocity * the velocity feed value.
-				double power = robot.kRVf * p.velocity;
-								
-				// Adjust power for desired acceleration or breaking
-				//
-				if ((p.acceleration > 0.0 && p.velocity > 0.0) || (p.acceleration < 0.0 && p.velocity < 0.0))
-				{
-					power += robot.kRAf * p.acceleration;
-				}
-				else
-				{
-					power += robot.kRBf * p.acceleration;
-				}
-
-				// Calculate the distance proportional and derivative error.
-				//
-				double error = p.bearing - (robot.getBearing() - motionStartBearing);
-				power += (robot.kRBp * error);
-
-				double dError = (error - motionLastError) / (t - motionLastTime) - p.velocity;
-				power += (robot.kRBd * dError);
-
-				motionLastError = error;
-				motionLastTime = t;
-				
-				leftPower = power; 
-				rightPower = -power;
-			}
-		}		
-		
-		if ((Math.abs((robot.getBearing() - motionStartBearing) - angle) < 1.5) && (Math.abs(robot.getRotationVelocity()) < 1.5))
-		{
-			motionStartTime = 0.0;
-			finished = true;
-			leftPower = 0;				
-			rightPower = 0;
-		}
-		
-		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
-
-		motionStartDistance = robot.getDistance();
-		
-		
-		return finished;
+		return rotateTo(robot, angle, 200.0, 300.0);
 	}
-
 	
-	public static boolean driveTo(Robot robot, double distance)
+	public static boolean rotateTo(Robot robot, double angle, double maxVel, double maxAcc)
 	{
-		boolean finished = false;
-
-		double leftPower = robot.leftDrive1.get(); 
-		double rightPower = robot.rightDrive1.get(); 
-
-		if (motionStartTime == 0.0) 
+		if (!autoIsDriving)
 		{
-			motionStartTime = robot.getTime();
-			motionStartDistance = robot.getDistance();
-			motionStartBearing = robot.getBearing();
-			leftPower = 0.0;
-			rightPower = 0.0;
-		}
-		else 
-		{
-			double t = robot.getTime() - motionStartTime;
-					
-			if (t >= robot.robotSampleRate)
-			{
-				double maxVel = 150.0;
-				double maxAcc = 100.0;
-				
-				if (distance < 0.0)
-				{
-					maxVel = -maxVel;
-					maxAcc = -maxAcc;
-				}
-				
-				MotionPosition p = MotionControl.getExpectedDrivePosition(t, distance, motionStartBearing, 0.0, maxVel, maxAcc);
-				
-				robot.motionTime = t;
-				robot.expBearing = p.bearing;
-				robot.expDistance = p.distance + motionStartDistance;
-				robot.expVelocity = p.velocity;
-				robot.expAcceleration = p.acceleration;
-				
-				// Set the power to the expected velocity * the velocity feed value.
-				double power = robot.kVf * p.velocity;
-								
-				// Adjust power for desired acceleration or breaking
-				//
-				if ((p.acceleration > 0.0 && p.velocity > 0.0) || (p.acceleration < 0.0 && p.velocity < 0.0))
-				{
-					power += robot.kAf * p.acceleration;
-				}
-				else
-				{
-					power += robot.kBf * p.acceleration;
-				}
-
-				// Calculate the distance proportional and derivative error.
-				//
-				double error = p.distance - (robot.getDistance() - motionStartDistance);
-				power += (robot.kDp * error);
-
-				double dError = (error - motionLastError) / (t - motionLastTime) - p.velocity;
-				power += (robot.kDd * dError);
-
-				motionLastError = error;
-				motionLastTime = t;
-				
-				leftPower = power; 
-				rightPower = power;
-				
-				// Calculate the current bearing error and apply the proportional error adjustment 				
-				double bError = p.bearing - robot.getBearing();
-				double leftAdj =  robot.kBp * bError;
-				double rightAdj = -robot.kBp * bError;
-				
-				if (leftPower + leftAdj > 1.0)
-				{
-					rightAdj -= leftAdj - (1.0 - leftPower);
-					leftAdj -= leftAdj - (1.0 - leftPower);
-				}
-				
-				if (leftPower + leftAdj < -1.0)
-				{
-					rightAdj -= leftAdj - (-1.0 - leftPower);
-					leftAdj -= leftAdj - (-1.0 - leftPower);
-				}
-				
-				if (rightPower + rightAdj > 1.0)
-				{
-					rightAdj -= rightAdj - (1.0 - rightPower);
-					leftAdj -= rightAdj - (1.0 - rightPower);
-				}
-				
-				if (rightPower + rightAdj < -1.0)
-				{
-					rightAdj -= rightAdj - (-1.0 - rightPower);
-					leftAdj -= rightAdj - (-1.0 - rightPower);
-				}
-					
-				leftPower += leftAdj;				
-				rightPower += rightAdj;
-			}
-		}
-		
-		if ((Math.abs((robot.getDistance() - motionStartDistance) - distance) < 1.5) && (Math.abs(robot.getVelocity()) < 1.5))
-		{
-			motionStartTime = 0.0;
-			finished = true;
-			leftPower = 0;				
-			rightPower = 0;
+			robot.driveController.rotate(angle, maxVel, maxAcc);
+			autoIsDriving = true;
 		}
 		else
 		{
-			SmartDashboard.putNumber("AutoDE", Math.abs((robot.getDistance() - motionStartDistance) - distance));
-			SmartDashboard.putNumber("AutoDV", Math.abs(robot.getVelocity()));
+			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
 		}
+		
+		return !autoIsDriving;
+	}
 
+	public static boolean driveTo(Robot robot, double distance)
+	{
+		return driveTo(robot, distance, 150, 100);
+	}
+	
+	public static boolean driveTo(Robot robot, double distance, double maxVel, double maxAcc)
+	{
+		if (!autoIsDriving)
+		{
+			robot.driveController.drive(distance, maxVel, maxAcc);
+			autoIsDriving = true;
+		}
+		else
+		{
+			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+		}
 		
-		robot.myDrive.tankDrive(-leftPower, -rightPower, false);
-		
-		return finished;
+		return !autoIsDriving;
 	}
 	
 	
