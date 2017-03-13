@@ -75,6 +75,8 @@ public class Robot extends IterativeRobot
 	public double lastVelocity = 0.0;
 	public double lastAcceleration = 0.0;
 	
+	public double driveStraightBearing = 0.0;
+	
 	public double motionTime = 0.0;
 	public double expBearing = 0.0;
 	public double expLeftDistance = 0.0;
@@ -109,14 +111,14 @@ public class Robot extends IterativeRobot
 	Encoder leftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
 	Encoder rightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
 	
-	RobotDrive myDrive = new RobotDrive(leftDrive1, leftDrive2, rightDrive1, rightDrive2);
+	public RobotDrive myDrive = new RobotDrive(leftDrive1, leftDrive2, rightDrive1, rightDrive2);
 	
-	DoubleSolenoid shifter = new DoubleSolenoid(0, 3, 4);
-	DoubleSolenoid intakeSolenoid = new DoubleSolenoid(0, 2, 5);
-	DoubleSolenoid gearWall = new DoubleSolenoid(0, 1, 6);
-	DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);	
-	DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
-	DoubleSolenoid shooterHood = new DoubleSolenoid(1, 2, 5);
+	public DoubleSolenoid shifter = new DoubleSolenoid(0, 3, 4);
+	public DoubleSolenoid intakeSolenoid = new DoubleSolenoid(0, 2, 5);
+	public DoubleSolenoid gearWall = new DoubleSolenoid(0, 1, 6);
+	public DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);	
+	public DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
+	public DoubleSolenoid shooterHood = new DoubleSolenoid(1, 2, 5);
 		
 	AnalogInput sensor = new AnalogInput(0);
 	AHRS gyro;
@@ -176,15 +178,15 @@ public class Robot extends IterativeRobot
 	PrintStream ps = null;
 	Timer motionProfileTimer = new Timer();
 	
+	public UsbCamera cameraHigh = null;
+	public UsbCamera cameraLow = null;
+	boolean showImageBlobs = false;
+	boolean showImageTargets = false;
+
 	Thread visionThread;
 	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
 	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
 	
-	UsbCamera cameraHigh = null;
-	UsbCamera cameraLow = null;
-	boolean showLowCamera = false;
-	boolean showImageBlobs = false;
-	boolean showImageTargets = false;
 		
 	public void robotInit()
 	{		
@@ -320,8 +322,7 @@ public class Robot extends IterativeRobot
 	{
 		this.resetMotion();
 
-		AutonomousController.autoStep = 0;
-		AutonomousController.autoIsDriving = false;
+		AutonomousController.Initialize(this);
 	}
 
 	/**
@@ -329,7 +330,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void autonomousPeriodic()
 	{
-		AutonomousController.periodic(this);
+		AutonomousController.Periodic(this);
 	}
 	
 	/**
@@ -435,7 +436,7 @@ public class Robot extends IterativeRobot
 					{
 						if (Math.abs(leftPower) > 0.08)
 						{
-							AutonomousController.driveForward(this, AutonomousController.motionStartBearing, -leftPower);
+							driveStraight(this.driveStraightBearing, -leftPower);
 							updateDriveStraightBearing = false;
 						}
 						else
@@ -446,12 +447,9 @@ public class Robot extends IterativeRobot
 				}
 			}
 			
-			
-			AutonomousController.motionStartTime = 0.0;  // TODO: remove this after testing.
-			AutonomousController.motionStartDistance = this.getDistance();
 			if (updateDriveStraightBearing)
 			{
-				AutonomousController.motionStartBearing = this.getBearing();
+				this.driveStraightBearing = this.getBearing();
 			}
 		}
 		
@@ -586,6 +584,14 @@ public class Robot extends IterativeRobot
 		}
 	}
 	
+	
+	public void driveStraight(double bearing, double power)
+	{
+		double error = bearing - this.getBearing();
+		
+		this.myDrive.tankDrive(-power - (0.015 * error), -power + (0.015 * error), true);
+	}
+
 	public double getTime()
 	{
 		return this.lastTime;
@@ -674,19 +680,24 @@ public class Robot extends IterativeRobot
 		this.lastTime = this.robotTimer.get();
 		
 		
-		// TODO: remove this if drive controller thread works.
-		AutonomousController.motionStartTime = 0.0;
-		AutonomousController.motionStartBearing = 0.0;
-		AutonomousController.motionStartDistance = 0.0;
+		this.driveStraightBearing = 0.0;
 	}
 	
 	public void writeDashboard()
 	{
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 
-		
-		SmartDashboard.putNumber("AutoMode", AutonomousController.getAutoMode());
-		SmartDashboard.putNumber("AutoStep", AutonomousController.autoStep);
+		AutoRoutine autoRoutine = AutonomousController.getAutoRoutine();
+		if (autoRoutine != null)
+		{
+			SmartDashboard.putString("AutoMode", autoRoutine.getName());
+			SmartDashboard.putNumber("AutoStep", autoRoutine.autoStep);
+		}
+		else 
+		{
+			SmartDashboard.putString("AutoMode", "Do Nothing");
+			SmartDashboard.putNumber("AutoStep", 0);
+		}
 		
 		SmartDashboard.putNumber("Angle", this.getCurrentAngle());
 		SmartDashboard.putNumber("Bearing", this.getBearing());

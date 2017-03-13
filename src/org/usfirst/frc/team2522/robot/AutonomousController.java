@@ -1,7 +1,14 @@
 package org.usfirst.frc.team2522.robot;
 
+import org.usfirst.frc.team2522.robot.auto.*;
+
+import java.util.Map;
+import java.util.HashMap;
+
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /***
@@ -10,235 +17,139 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public final class AutonomousController 
 {
-	public static double motionStartTime = 0.0;
-	public static double motionStartDistance = 0.0;
-	public static double motionStartBearing = 0.0;
-	public static double motionLastError = 0.0;
-	public static double motionLastTime = 0.0;
-
-	public static int autoMode = 0;
-	public static int autoStep = 0;
-
-	public static double autoRotation = 0.0;
+	/**
+	 * 
+	 */
 	public static boolean autoIsDriving = false;
 
-	public static int getAutoMode()
+	/**
+	 * Keep track of time in auto mode.
+	 */
+	private static Timer autoTimer = new Timer();
+	
+	/**
+	 * Stores the currently selected auto routine instance.
+	 */
+	private static AutoRoutine autoRoutine;
+	
+	/**
+	 * Stores the currently active alliance.
+	 * 
+	 */
+	public static DriverStation.Alliance autoAlliance;
+	
+	/**
+	 * 
+	 */
+	@SuppressWarnings("serial")
+	private static final Map<Integer, Map<Integer, AutoRoutine>> autoFieldPosMap = new HashMap<Integer, Map<Integer, AutoRoutine>>() {{
+				put(1, new HashMap<Integer, AutoRoutine>() {{
+					put(1, new AutoPlaceBoilerPeg());
+				}});
+				put(2, new HashMap<Integer, AutoRoutine>() {{
+					put(1, new AutoPlaceCenterPeg());
+				}});
+				put(2, new HashMap<Integer, AutoRoutine>() {{
+					put(1, new AutoPlaceOutsidePeg());
+				}});
+			}};
+			
+			
+			
+	/**
+	 * Returns the current alliance of the robot.
+	 * 
+	 * @return
+	 */
+	public static DriverStation.Alliance getAlliance()
 	{
+		return DriverStation.getInstance().getAlliance();
+	}
+	
+	/**
+	 * Return the result of the robot field start position selector.
+	 *  
+	 *  For 2017 Steamworks the positions are as follows:
+	 *  
+	 *  	1: Robot position back bumper touching drive station wall facing out, with outer edge of right bumper about 1/2" in from edge of polycarb wall opening.
+	 *  	2: Robot position back bumper touching drive station wall facing out, centered on gear peg as good as possible.
+	 *  	3: Robot position back bumper touching drive station wall facing out, with 
+	 *  
+	 * @return The id of the field starting position.
+	 */
+	public static int getFieldStartPosition()
+	{
+		// TODO: read field select switch from drive station.
+		return 1;
+	}
+
+	/**
+	 * 
+	 * 
+	 * @return
+	 */
+	public static int getAutoRoutineId()
+	{
+		// TODO: read auto routine select switch from drive station.
 		return 1;
 	}
 	
-
-	public static void periodic(Robot robot)
+	/**
+	 *  
+	 * @return
+	 */
+	public static AutoRoutine getAutoRoutine()
 	{
-		if (getAutoMode() == 1)
+		AutoRoutine result = null;
+		
+		Map<Integer, AutoRoutine> autoRoutines = autoFieldPosMap.get(getFieldStartPosition());
+		if (autoRoutines != null)
 		{
-			auto_1_1(robot);
+			result = autoRoutines.get(getAutoRoutineId());
 		}
-		else if (getAutoMode() == 2)
-		{
-			auto_2_1(robot);
-		}
+		
+		return result;
+	}
+	
+	
+	/**
+	 * 
+	 * 
+	 * @return
+	 */
+	public static double getStartDelay()
+	{
+		// TODO: read the joystick access controlling the auto start delay.
+		return 0.0;
 	}
 	
 	/**
 	 * 
 	 * @param robot
 	 */
-	public static void auto_1_1(Robot robot)
+	public static void Initialize(Robot robot)
 	{
-		if (autoStep == 0) 
+		autoTimer.reset();
+		autoTimer.start();
+
+		autoIsDriving = false;
+		
+		autoRoutine = getAutoRoutine();
+	}
+	
+	/**
+	 * 
+	 * @param robot
+	 */
+	public static void Periodic(Robot robot)
+	{
+		if (autoRoutine != null)
 		{
-			if (driveTo(robot, 68.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 1)
-		{
-			if (rotateTo(robot, -60.0, 200, 450))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 2) 
-		{
-			ImageUtils.setCamera(robot.cameraLow);
-			autoRotation = ImageUtils.getPegRotationError();
-			while(autoRotation == -999.0)
-			{
-				autoRotation = ImageUtils.getPegRotationError();
-			}
-			autoStep++;
-		}
-		else if (autoStep == 3)
-		{
-			if (rotateTo(robot, autoRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 4) 
-		{
-			if (driveTo(robot, 50.0))
-			{
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				autoStep++;
-			}
-		}
-		else if (autoStep == 5) 
-		{
-			if (driveTo(robot, 20.0, 150, 80.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 6) 
-		{
-			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
-			try {
-				Thread.sleep(350);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			autoStep++;
-		}
-		else if (autoStep == 7) 
-		{
-			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			autoStep++;
-		}
-		else if (autoStep == 8) 
-		{
-			if (driveTo(robot, -5.0, 35.0, 50.0))
-			{
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				autoStep++;
-			}
-		}
-		else if (autoStep == 9) 
-		{
-			if (driveTo(robot, -30.0, 35.0, 35.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 10) 
-		{
-			if (rotateTo(robot, 180, 200, 450))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 11) 
-		{
-			if (driveTo(robot, 80.0))
-			{
-				autoStep++;
-			}
-		}
-		else
-		{
-			robot.myDrive.tankDrive(0.0, 0.0);
+			autoRoutine.Periodic(robot);
 		}
 	}
 	
-	public static void auto_2_1(Robot robot)
-	{
-		if (autoStep == 0)
-		{
-			if (driveTo(robot, 24.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 1) 
-		{
-			ImageUtils.setCamera(robot.cameraLow);
-			autoRotation = ImageUtils.getPegRotationError();
-			while(autoRotation == -999.0)
-			{
-				autoRotation = ImageUtils.getPegRotationError();
-			}
-			autoStep++;
-		}
-		else if (autoStep == 2)
-		{
-			if (rotateTo(robot, autoRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 3) 
-		{
-			if (driveTo(robot, 52.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 4) 
-		{
-			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
-			try {
-				Thread.sleep(250);
-				autoStep++;
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		else if (autoStep == 5) 
-		{
-			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			autoStep++;
-		}
-		else if (autoStep == 6) 
-		{
-			if (driveTo(robot, -5.0, 35.0, 50.0))
-			{
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				autoStep++;
-			}
-		}
-		else if (autoStep == 7) 
-		{
-			if (driveTo(robot, -30.0, 35.0, 35.0))
-			{
-				autoStep++;
-			}
-		}
-		else
-		{
-			robot.myDrive.tankDrive(0.0, 0.0);
-		}
-	}
+	
 	
 	public static boolean rotateTo(Robot robot, double angle)
 	{
@@ -278,14 +189,6 @@ public final class AutonomousController
 		}
 		
 		return !autoIsDriving;
-	}
-	
-	
-	public static void driveForward(Robot robot, double bearing, double power)
-	{
-		double error = bearing - robot.getBearing();
-		
-		robot.myDrive.tankDrive(-power - (0.015 * error), -power + (0.015 * error), true);
 	}
 	
 }

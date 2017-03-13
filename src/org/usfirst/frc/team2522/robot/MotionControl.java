@@ -254,95 +254,6 @@ public class MotionControl
 		return new MotionPosition(expectedBearing, 0.0, expectedVelocity, expectedAcceleration);
 	}
 	
-//	public static MotionPosition getExpectedRotationPosition(double t, double angle, double maxRAccl)
-//	{
-//		/**
-//		 * Maximum deceleration value.
-//		 */
-//		double maxRBreak = -maxRAccl;
-//				
-//				
-//		/**
-//		 * Distance traveled while accelerating.
-//		 */
-//		double accl_d = angle / 2;
-//
-//		/**
-//		 * Time spent accelerating.
-//		 */
-//		double accl_t = getTimeToDistance(accl_d, 0.0, maxRAccl);
-//
-//		/**
-//		 * Velocity at beginning of acceleration.
-//		 */
-//		double accl_vi = 0.0;
-//		
-//		/**
-//		 * Velocity at end of acceleration.
-//		 */
-//		double accl_vf = getVelocity(accl_t, 0.0, maxRAccl);
-//		
-//		
-//		/**
-//		 * Velocity at beginning of breaking.
-//		 */
-//		double break_vi = accl_vf;
-//		
-//		/**
-//		 * Velocity at end of breaking.
-//		 */
-//		double break_vf = 0.0;
-//		
-//		/**
-//		 * Distance traveled while breaking.
-//		 */
-//		double break_d = accl_d;				
-//		
-//		/**
-//		 * Time spent breaking.
-//		 */
-//		double break_t = accl_t;
-//		
-//
-//	SmartDashboard.putNumber("accl_t", accl_t);
-//	SmartDashboard.putNumber("accl_d", accl_d);
-//	SmartDashboard.putNumber("break_t", break_t);
-//	SmartDashboard.putNumber("break_d", break_d);
-//		
-//		
-//		// Calculate the expected distance and velocity the robot should have achieved by the time specified.
-//		//
-//		double expectedRotation = 0.0;
-//		double expectedVelocity = 0.0;
-//		double expectedAcceleration = 0.0;
-//		
-//		if (t <= 0.0)
-//		{
-//			expectedVelocity = 0.0;
-//			expectedRotation = 0.0;
-//			expectedAcceleration = 0.0;
-//		}
-//		else if (t <= accl_t)
-//		{
-//			expectedVelocity = getVelocity(t, accl_vi, maxRAccl);
-//			expectedRotation = getDistance(t, accl_vi, maxRAccl);
-//			expectedAcceleration = maxRAccl;
-//		}
-//		else if (t <= (accl_t + break_t))
-//		{
-//			expectedVelocity = getVelocity(t - accl_t, break_vi, maxRBreak);
-//			expectedRotation = accl_d + getDistance(t - accl_t, break_vi, maxRBreak);
-//			expectedAcceleration = maxRBreak;
-//		}
-//		else
-//		{
-//			expectedVelocity = 0.0;
-//			expectedRotation = angle;
-//			expectedAcceleration = 0.0;
-//		}
-//		
-//		return new MotionPosition(expectedRotation, 0.0, expectedVelocity, expectedAcceleration);
-//	}	
 	
 	/***
 	 * Return the time that the specified change in velocity occurred assuming the constant acceleration
@@ -370,6 +281,11 @@ public class MotionControl
 	 * 
 	 * If the distance will be achieved more than once with the specified conditions, the first (minimum) time to
 	 * that distance is returned.
+	 *
+	 * d = vi * t + 0.5 * a * t^2
+	 * 
+	 * 0 = (0.5 * a) * t^2 + vi * t - d
+	 * t = (-vi +/- sqrt(vi^2 - 4.0*(0.5 * a) * -d)) / 2.0 * a
 	 * 
 	 * @param d		Distance desired.
 	 * @param vi	Initial velocity.
