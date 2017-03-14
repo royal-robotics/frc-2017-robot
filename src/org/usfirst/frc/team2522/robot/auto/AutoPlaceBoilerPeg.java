@@ -68,7 +68,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 		}
 		else if (autoStep == 4) 
 		{
-			if (AutonomousController.driveTo(robot, 50.0))
+			if (AutonomousController.driveTo(robot, 60.0))
 			{
 				try {
 					Thread.sleep(100);
@@ -88,7 +88,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 		}
 		else if (autoStep == 6) 
 		{
-			robot.gearDrapes.set(DoubleSolenoid.Value.kReverse);
+			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
 				Thread.sleep(350);
 			} catch (InterruptedException e) {
@@ -137,13 +137,13 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 11) 
-		{
-			if (AutonomousController.driveTo(robot, 80.0))
-			{
-				autoStep++;
-			}
-		}
+//		else if (autoStep == 11) 
+//		{
+//			if (AutonomousController.driveTo(robot, 80.0))
+//			{
+//				autoStep++;
+//			}
+//		}
 		else
 		{
 			robot.myDrive.tankDrive(0.0, 0.0);

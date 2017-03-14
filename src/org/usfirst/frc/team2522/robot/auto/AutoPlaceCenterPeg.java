@@ -52,12 +52,19 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		}
 		else if (autoStep == 3) 
 		{
-			if (AutonomousController.driveTo(robot, 52.0))
+			if (AutonomousController.driveTo(robot, 33.0))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 4) 
+		{
+			if (AutonomousController.driveTo(robot, 20.0, 150, 80.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 5) 
 		{
 			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -68,9 +75,9 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 				e.printStackTrace();
 			}
 		}
-		else if (autoStep == 5) 
+		else if (autoStep == 6) 
 		{
-			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
+			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
@@ -79,7 +86,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			}
 			autoStep++;
 		}
-		else if (autoStep == 6) 
+		else if (autoStep == 7) 
 		{
 			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
 			{
@@ -92,7 +99,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 7) 
+		else if (autoStep == 8) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
 

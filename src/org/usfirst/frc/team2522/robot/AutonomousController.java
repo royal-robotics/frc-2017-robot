@@ -49,7 +49,7 @@ public final class AutonomousController
 				put(2, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceCenterPeg());
 				}});
-				put(2, new HashMap<Integer, AutoRoutine>() {{
+				put(3, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceOutsidePeg());
 				}});
 			}};
@@ -80,7 +80,7 @@ public final class AutonomousController
 	public static int getFieldStartPosition()
 	{
 		// TODO: read field select switch from drive station.
-		return 1;
+		return 2;
 	}
 
 	/**
@@ -135,6 +135,7 @@ public final class AutonomousController
 		autoIsDriving = false;
 		
 		autoRoutine = getAutoRoutine();
+		
 	}
 	
 	/**
