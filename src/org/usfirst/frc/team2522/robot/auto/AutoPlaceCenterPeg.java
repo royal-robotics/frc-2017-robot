@@ -69,11 +69,11 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
 				Thread.sleep(250);
-				autoStep++;
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			autoStep++;
 		}
 		else if (autoStep == 6) 
 		{

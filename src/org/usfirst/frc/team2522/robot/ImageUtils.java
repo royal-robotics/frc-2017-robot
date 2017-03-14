@@ -220,7 +220,7 @@ public class ImageUtils
 			result = center - (imageWidth / 2); 
 		}
 		
-		return result - 10;
+		return result - 15;
 	}
 	
 	public static double getBoilerTargetDistance(List<Rect> rectangles)
