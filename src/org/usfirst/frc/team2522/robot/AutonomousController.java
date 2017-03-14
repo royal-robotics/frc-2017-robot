@@ -135,7 +135,7 @@ public final class AutonomousController
 		autoIsDriving = false;
 		
 		autoRoutine = getAutoRoutine();
-		
+		autoRoutine.Initialize(robot);
 	}
 	
 	/**
