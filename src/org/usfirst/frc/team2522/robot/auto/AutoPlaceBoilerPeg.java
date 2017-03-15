@@ -21,6 +21,8 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 	{
 		super.Initialize(robot);
 		
+		alignRotation = 0.0;
+		
 		ImageUtils.setCamera(robot.cameraLow);
 	}
 	
@@ -46,7 +48,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				angle = -angle;
 			}
 				
-			if (AutonomousController.rotateTo(robot, -60.0, 300.0, 500.0))
+			if (AutonomousController.rotateTo(robot, angle, 300.0, 500.0))
 			{
 				autoStep++;
 			}

@@ -302,41 +302,8 @@ public class DriveController extends Thread
 					
 					motionLastTime = t;
 
-					
-					// Calculate the current bearing error and apply the proportional error adjustment 				
-//					double bError = p.bearing - robot.getBearing();
-//					double leftAdj =  robot.kBp * bError;
-//					double rightAdj = -robot.kBp * bError;
-//					
-//					if (leftPower + leftAdj > 1.0)
-//					{
-//						rightAdj -= leftAdj - (1.0 - leftPower);
-//						leftAdj -= leftAdj - (1.0 - leftPower);
-//					}
-//					
-//					if (leftPower + leftAdj < -1.0)
-//					{
-//						rightAdj -= leftAdj - (-1.0 - leftPower);
-//						leftAdj -= leftAdj - (-1.0 - leftPower);
-//					}
-//					
-//					if (rightPower + rightAdj > 1.0)
-//					{
-//						rightAdj -= rightAdj - (1.0 - rightPower);
-//						leftAdj -= rightAdj - (1.0 - rightPower);
-//					}
-//					
-//					if (rightPower + rightAdj < -1.0)
-//					{
-//						rightAdj -= rightAdj - (-1.0 - rightPower);
-//						leftAdj -= rightAdj - (-1.0 - rightPower);
-//					}
-//						
-//					leftPower += leftAdj;				
-//					rightPower += rightAdj;
-
 //					if ((p.distance == motionDriveDistance) && (Math.abs((robot.leftDriveEncoder.getDistance() - motionStartLeftDistance) - motionDriveDistance) < 2.0) && (Math.abs(robot.getVelocity()) < 1.0))
-					if ((p.distance == motionDriveDistance) &&  (Math.abs(robot.getVelocity()) < 1.0))
+					if ((p.distance == motionDriveDistance) &&  (Math.abs(robot.getVelocity()) == 0.0))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				
@@ -377,12 +344,18 @@ public class DriveController extends Thread
 					leftPower = power; 
 					rightPower = -power;
 					
-					if ((p.bearing == motionRotateAngle) && (Math.abs(robot.getRotationVelocity()) == 0.0))
+					if ((p.bearing == motionRotateAngle) && (robot.getRotationVelocity() == 0.0))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				
 						rightPower = 0;
 					}
+				}
+				else
+				{
+					motionStartTime = 0.0;
+					leftPower = 0;				
+					rightPower = 0;
 				}
 				
 				robot.motionTime = t;

@@ -82,7 +82,7 @@ public final class AutonomousController
 	public static int getFieldStartPosition()
 	{
 		// TODO: read field select switch from drive station.
-		return 2;
+		return 3;
 	}
 
 	/**
@@ -163,6 +163,7 @@ public final class AutonomousController
 	{
 		if (!autoIsDriving)
 		{
+			SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
 			autoDriveStartValue = robot.getCurrentBearing();
 			
 			robot.driveController.rotate(angle, maxVel, maxAcc);
@@ -175,7 +176,7 @@ public final class AutonomousController
 		
 		if (!autoIsDriving)
 		{
-			SmartDashboard.putNumber("Auto-Rotate", robot.getCurrentBearing() - autoDriveStartValue);
+			SmartDashboard.putNumber("Auto-Rotate-Actual", robot.getCurrentBearing() - autoDriveStartValue);
 		}
 		
 		return !autoIsDriving;

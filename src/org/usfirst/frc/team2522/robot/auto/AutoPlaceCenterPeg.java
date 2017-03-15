@@ -9,7 +9,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 	/**
 	 * 
 	 */
-	public static double pegAlignRotation = 0.0;
+	public static double alignRotation = 0.0;
 
 	/**
 	 * 
@@ -18,6 +18,8 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 	public void Initialize(Robot robot)
 	{
 		super.Initialize(robot);
+		
+		alignRotation = 0.0;
 		
 		ImageUtils.setCamera(robot.cameraLow);
 	}
@@ -36,16 +38,16 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		else if (autoStep == 1)
 		{
 			ImageUtils.setCamera(robot.cameraLow);
-			pegAlignRotation = ImageUtils.getPegRotationError(60.0);
-			while(pegAlignRotation == Double.NaN)
+			alignRotation = ImageUtils.getPegRotationError(60.0);
+			while(alignRotation == Double.NaN)
 			{
-				pegAlignRotation = ImageUtils.getPegRotationError(60.0);
+				alignRotation = ImageUtils.getPegRotationError(60.0);
 			}
 			autoStep++;
 		}
 		else if (autoStep == 2)
 		{
-			if (AutonomousController.rotateTo(robot, pegAlignRotation))
+			if (AutonomousController.rotateTo(robot, alignRotation))
 			{
 				autoStep++;
 			}
@@ -57,57 +59,74 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-//		else if (autoStep == 4) 
-//		{
-//			if (AutonomousController.driveTo(robot, 20.0, 150, 80.0))
-//			{
-//				autoStep++;
-//			}
-//		}
-//		else if (autoStep == 5) 
-//		{
-//			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
-//			try {
-//				Thread.sleep(350);
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			autoStep++;
-//		}
-//		else if (autoStep == 6) 
-//		{
-//			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
-//			try {
-//				Thread.sleep(250);
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			autoStep++;
-//		}
-//		else if (autoStep == 7) 
-//		{
-//			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
-//			{
-//				try {
-//					Thread.sleep(500);
-//				} catch (InterruptedException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-//				autoStep++;
-//			}
-//		}
-//		else if (autoStep == 8) 
-//		{
-//			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
-//
-//			if (AutonomousController.driveTo(robot, -30.0, 35.0, 35.0))
-//			{
-//				autoStep++;
-//			}
-//		}
+		else if (autoStep == 4)
+		{
+			ImageUtils.setCamera(robot.cameraLow);
+			alignRotation = ImageUtils.getPegRotationError(60.0);
+			while(alignRotation == Double.NaN)
+			{
+				alignRotation = ImageUtils.getPegRotationError(60.0);
+			}
+			autoStep++;
+		}
+		else if (autoStep == 5)
+		{
+			if (AutonomousController.rotateTo(robot, alignRotation))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 6) 
+		{
+			if (AutonomousController.driveTo(robot, 27.0, 150, 80.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 7) 
+		{
+			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
+			try {
+				Thread.sleep(350);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 8) 
+		{
+			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
+			try {
+				Thread.sleep(250);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			autoStep++;
+		}
+		else if (autoStep == 9) 
+		{
+			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
+			{
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				autoStep++;
+			}
+		}
+		else if (autoStep == 10) 
+		{
+			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
+
+			if (AutonomousController.driveTo(robot, -30.0, 35.0, 35.0))
+			{
+				autoStep++;
+			}
+		}
 		else
 		{
 			robot.myDrive.tankDrive(0.0, 0.0);

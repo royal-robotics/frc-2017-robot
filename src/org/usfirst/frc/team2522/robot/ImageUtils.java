@@ -213,7 +213,7 @@ public class ImageUtils
 						double a = range;
 						double b = pe * 10.5 / pixelWidth;
 						
-						b = b + 0.25; // adjustment for practice bot camera placement.
+						b = b - 1.0; // adjustment for practice bot camera placement.
 						
 						result = Math.toDegrees(Math.atan(b / a));
 					}
@@ -228,7 +228,6 @@ public class ImageUtils
 	{
 		double result = Double.NaN;
 		
-		// TODO: do triangle math with distance and pixels off center to find bearing correction.
 		if (rectangles.size() == 2)
 		{
 			int left = Math.min(rectangles.get(0).x, rectangles.get(1).x);
