@@ -21,6 +21,8 @@ public final class AutonomousController
 	 * 
 	 */
 	public static boolean autoIsDriving = false;
+	
+	public static double autoDriveStartValue = 0.0;
 
 	/**
 	 * Keep track of time in auto mode.
@@ -135,7 +137,7 @@ public final class AutonomousController
 		autoIsDriving = false;
 		
 		autoRoutine = getAutoRoutine();
-		
+		autoRoutine.Initialize(robot);
 	}
 	
 	/**
@@ -161,12 +163,19 @@ public final class AutonomousController
 	{
 		if (!autoIsDriving)
 		{
+			autoDriveStartValue = robot.getCurrentBearing();
+			
 			robot.driveController.rotate(angle, maxVel, maxAcc);
 			autoIsDriving = true;
 		}
 		else
 		{
 			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+		}
+		
+		if (!autoIsDriving)
+		{
+			SmartDashboard.putNumber("Auto-Rotate", robot.getCurrentBearing() - autoDriveStartValue);
 		}
 		
 		return !autoIsDriving;
@@ -181,12 +190,19 @@ public final class AutonomousController
 	{
 		if (!autoIsDriving)
 		{
+			autoDriveStartValue = robot.leftDriveEncoder.getDistance();
+
 			robot.driveController.drive(distance, maxVel, maxAcc);
 			autoIsDriving = true;
 		}
 		else
 		{
 			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+		}
+		
+		if (!autoIsDriving)
+		{
+			SmartDashboard.putNumber("Auto-Drive", robot.leftDriveEncoder.getDistance() - autoDriveStartValue);
 		}
 		
 		return !autoIsDriving;

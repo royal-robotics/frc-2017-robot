@@ -208,7 +208,6 @@ public class MotionControl
 
 		SmartDashboard.putNumber("accl_t", accl_t);
 		SmartDashboard.putNumber("accl_d", accl_d);
-		SmartDashboard.putNumber("accl_vf", accl_vf);
 		SmartDashboard.putNumber("cruise_t", cruise_t);
 		SmartDashboard.putNumber("cruise_d", cruise_d);
 		SmartDashboard.putNumber("break_t", break_t);

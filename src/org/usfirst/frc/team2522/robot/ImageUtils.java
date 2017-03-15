@@ -84,7 +84,7 @@ public class ImageUtils
 		ImageUtils.camera = camera;
 	}
 	
-	public static List<Rect> processFrame(double minAspectRatio, double maxAspectRatio, boolean showImageBlobs, boolean showImageTargets, boolean saveImage)
+	public static List<Rect> processFrame(boolean highCamera, double minAspectRatio, double maxAspectRatio, boolean showImageBlobs, boolean showImageTargets, boolean saveImage)
 	{
 		List<Rect> rectangles = new ArrayList<Rect>();
 
@@ -122,8 +122,17 @@ public class ImageUtils
 						}
 	
 						SmartDashboard.putString("Image-Rects", s);
-						SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(rectangles));
-						SmartDashboard.putNumber("Target-Error", getPegTargetBearing(rectangles));
+						
+						if (highCamera)
+						{
+							SmartDashboard.putNumber("Target-Dist", getBoilerTargetDistance(rectangles));
+							SmartDashboard.putNumber("Target-Error", getBoilerTargetPixelError(rectangles));
+						}
+						else
+						{
+							SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(rectangles));
+							SmartDashboard.putNumber("Target-Error", getPegTargetPixelError(rectangles));
+						}
 					}
 					
 					ImageUtils.cameraStream.putFrame(src_image);
@@ -170,7 +179,7 @@ public class ImageUtils
 	
 	public static double getPegTargetDistance(List<Rect> rectangles)
 	{
-		double result = -1.0;
+		double result = Double.NaN;
 		
 		if (rectangles.size() == 2)
 		{
@@ -180,9 +189,9 @@ public class ImageUtils
 		return result;
 	}
 	
-	public static double getPegRotationError()
+	public static double getPegRotationError(double range)
 	{
-		double result = -999.0;
+		double result = Double.NaN;
 		
 		if (ImageUtils.cameraSink != null)
 		{
@@ -194,21 +203,30 @@ public class ImageUtils
 			else
 			{
 				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0);
-				double pe = getPegTargetBearing(rectangles);
-				
-				double a = 72.0;
-				double b = pe * 10.5 / 68.0;
-				
-				result = Math.toDegrees(Math.atan(b / a));
+				if (rectangles.size() == 2)
+				{
+					double pixelWidth = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width) - Math.min(rectangles.get(0).x, rectangles.get(1).x);
+					double pe = getPegTargetPixelError(rectangles);
+
+					if (pe != Double.NaN)
+					{
+						double a = range;
+						double b = pe * 10.5 / pixelWidth;
+						
+						b = b + 0.25; // adjustment for practice bot camera placement.
+						
+						result = Math.toDegrees(Math.atan(b / a));
+					}
+				}
 			}
 		}
 		
 		return result;
 	}
 	
-	public static double getPegTargetBearing(List<Rect> rectangles)
+	public static double getPegTargetPixelError(List<Rect> rectangles)
 	{
-		double result = -1.0;
+		double result = Double.NaN;
 		
 		// TODO: do triangle math with distance and pixels off center to find bearing correction.
 		if (rectangles.size() == 2)
@@ -217,24 +235,66 @@ public class ImageUtils
 			int right = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width);
 			int center = left + ((right - left) / 2);
 			
-			result = center - (imageWidth / 2); 
+			result = center - (imageWidth / 2);
 		}
 		
-		return result - 15;
+		return result;
 	}
 	
 	public static double getBoilerTargetDistance(List<Rect> rectangles)
 	{
-		double result = -1.0;
+		double result = Double.NaN;
 		
 		// TODO: calculate ratio size to range. 
 		
 		return result;
 	}
-	
-	public static double getBoilerTargetBearing(List<Rect> rectangles)
+
+	public static double getBoilerRotationError(double range)
 	{
-		double result = -1.0;
+		double result = Double.NaN;
+		
+		if (ImageUtils.cameraSink != null)
+		{
+			if (ImageUtils.cameraSink.grabFrame(src_image) == 0)
+			{
+				ImageUtils.cameraStream.notifyError(ImageUtils.cameraSink.getError());
+				System.out.println(ImageUtils.cameraSink.getError());
+			}
+			else
+			{
+				List<Rect> rectangles = getRectangles(src_image, 0.15, 0.5);
+				if (rectangles.size() == 2)
+				{
+					double pixelHeight = Math.max(rectangles.get(0).y + rectangles.get(0).height, rectangles.get(1).y + rectangles.get(1).height) - Math.min(rectangles.get(0).y, rectangles.get(1).y);
+					double pe = getPegTargetPixelError(rectangles);
+
+					if (pe != Double.NaN)
+					{
+						double a = range;
+						double b = pe * 10.0 / pixelHeight;
+						
+						result = Math.toDegrees(Math.atan(b / a));
+					}
+				}
+			}
+		}
+		
+		return result;
+	}
+	
+	public static double getBoilerTargetPixelError(List<Rect> rectangles)
+	{
+		double result = Double.NaN;
+
+		if (rectangles.size() == 2)
+		{
+			int left = Math.min(rectangles.get(0).x, rectangles.get(1).x);
+			int right = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width);
+			int center = left + ((right - left) / 2);
+			
+			result = center - (imageWidth / 2);
+		}
 		
 		return result;
 	}

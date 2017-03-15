@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
  */
 public class AutoPlaceBoilerPeg extends AutoRoutine
 {
-	public static double pegAlignRotation = 0.0;
+	public static double alignRotation = 0.0;
 
 	/**
 	 * 
@@ -31,7 +31,8 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 	public void Periodic(Robot robot) {
 		if (autoStep == 0) 
 		{
-			if (AutonomousController.driveTo(robot, 68.0))
+			robot.setShooterPower(0.75);
+			if (AutonomousController.driveTo(robot, 65.0))
 			{
 				autoStep++;
 			}
@@ -45,48 +46,59 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				angle = -angle;
 			}
 				
-			if (AutonomousController.rotateTo(robot, -60.0, 200, 450))
+			if (AutonomousController.rotateTo(robot, -60.0, 300.0, 500.0))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 2) 
 		{
-			pegAlignRotation = ImageUtils.getPegRotationError();
-			while(pegAlignRotation == -999.0)
+			alignRotation = ImageUtils.getPegRotationError(75.0);
+			while(alignRotation == Double.NaN)
 			{
-				pegAlignRotation = ImageUtils.getPegRotationError();
+				alignRotation = ImageUtils.getPegRotationError(75.0);
 			}
 			autoStep++;
 		}
 		else if (autoStep == 3)
 		{
-			if (AutonomousController.rotateTo(robot, pegAlignRotation))
+			if (AutonomousController.rotateTo(robot, alignRotation))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 4) 
 		{
-			if (AutonomousController.driveTo(robot, 60.0))
+			if (AutonomousController.driveTo(robot, 50.0))
 			{
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
 				autoStep++;
 			}
 		}
 		else if (autoStep == 5) 
 		{
-			if (AutonomousController.driveTo(robot, 20.0, 150, 80.0))
+			alignRotation = ImageUtils.getPegRotationError(30.0);
+			while(alignRotation == Double.NaN)
+			{
+				alignRotation = ImageUtils.getPegRotationError(30.0);
+			}
+			ImageUtils.setCamera(robot.cameraHigh);
+			autoStep++;
+		}
+		else if (autoStep == 6)
+		{
+			if (AutonomousController.rotateTo(robot, alignRotation))
 			{
 				autoStep++;
 			}
 		}
-		else if (autoStep == 6) 
+		else if (autoStep == 7) 
+		{
+			if (AutonomousController.driveTo(robot, 24.0, 150, 80.0))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 8) 
 		{
 			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -97,23 +109,23 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 			}
 			autoStep++;
 		}
-		else if (autoStep == 7) 
+		else if (autoStep == 9) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
 			try {
-				Thread.sleep(500);
+				Thread.sleep(250);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			autoStep++;
 		}
-		else if (autoStep == 8) 
+		else if (autoStep == 10) 
 		{
 			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
 			{
 				try {
-					Thread.sleep(1000);
+					Thread.sleep(500);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -121,7 +133,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 9) 
+		else if (autoStep == 11) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
 			
@@ -130,20 +142,37 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 10) 
+		else if (autoStep == 12) 
 		{
-			if (AutonomousController.rotateTo(robot, 180, 200, 450))
+			if (AutonomousController.rotateTo(robot, -180, 300, 500))
 			{
 				autoStep++;
 			}
 		}
-//		else if (autoStep == 11) 
-//		{
-//			if (AutonomousController.driveTo(robot, 80.0))
-//			{
-//				autoStep++;
-//			}
-//		}
+		else if (autoStep == 13) 
+		{
+			alignRotation = ImageUtils.getBoilerRotationError(120.0);
+			while(alignRotation == Double.NaN)
+			{
+				alignRotation = ImageUtils.getBoilerRotationError(120.0);
+			}
+			autoStep++;
+		}
+		else if (autoStep == 14)
+		{
+			if (AutonomousController.rotateTo(robot, alignRotation))
+			{
+				autoStep++;
+			}
+		}
+		else if (autoStep == 15) 
+		{
+			if (AutonomousController.driveTo(robot, 91.0))
+			{
+				robot.setFeederPower(0.75);
+				autoStep++;
+			}
+		}
 		else
 		{
 			robot.myDrive.tankDrive(0.0, 0.0);

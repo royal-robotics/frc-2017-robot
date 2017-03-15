@@ -15,7 +15,8 @@ public abstract class AutoRoutine
 	 */
 	public String getName()
 	{
-		return this.getClass().getName();
+		String name = this.getClass().getName();
+		return name.substring(name.lastIndexOf('.') + 1);
 	}
 	
 	/**

@@ -52,6 +52,8 @@ public class Robot extends IterativeRobot
 	
 	public DriveController driveController = null;
 	
+	public boolean testMode = true;
+	
 	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public final double kAf = 0.0037;
 	public final double kBf = 0.0020;
@@ -60,11 +62,11 @@ public class Robot extends IterativeRobot
 //	public final double kBp = 0.0015;
 
 	
-	public final double kRVf	= 1.0 / 488.0;	// 1 / max rotational velocity
-	public final double kRAf = 0.00095; //0.00095;
-	public final double kRBf = 0.00035; //0.00035
-	public final double kRBp = 0.0028;	//0.00200
-	public final double kRBd = 0.00010;
+	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+	public final double kRAf = 0.00130; //0.00095;
+	public final double kRBf = 0.00080; //0.00035
+	public final double kRBp = 0.00150; //0.00280
+	public final double kRBd = 0.00000; //0.00010
 	
 	public double lastTime = 0.0;
 	public double lastBearing = 0.0;
@@ -261,11 +263,11 @@ public class Robot extends IterativeRobot
     		while (!Thread.interrupted()) {
     			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
     			{
-    				ImageUtils.processFrame(2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+    				ImageUtils.processFrame(false, 2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
     			}
     			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
     			{
-    				ImageUtils.processFrame(2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+    				ImageUtils.processFrame(true, 0.15, 0.5, showImageBlobs, showImageTargets, takeImageButton.isPressed());
     			}
     		}
     	});
@@ -362,7 +364,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopPeriodic()
 	{
-		if (testDriveDistanceButton.isPressed())
+		if (this.testMode && testDriveDistanceButton.isPressed())
 		{
 			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 			SmartDashboard.putNumber("Test Drive Distance", dist);
@@ -373,15 +375,10 @@ public class Robot extends IterativeRobot
 				this.motionDone = true;
 			}
 
-//			if (!this.motionDone)
-//			{
-//				this.motionDone = AutonomousController.driveTo(this, dist);
-//			}
-//
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
 		}
-		else if (testDriveRotateButton.isPressed())
+		else if (this.testMode && testDriveRotateButton.isPressed())
 		{
 			double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 			SmartDashboard.putNumber("Test Drive Distance", dist);
@@ -391,11 +388,6 @@ public class Robot extends IterativeRobot
 				driveController.rotate(dist);
 				this.motionDone = true;
 			}
-
-//			if (!this.motionDone)
-//			{
-//				this.motionDone = AutonomousController.rotateTo(this, dist);
-//			}
 		}
 		else
 		{
@@ -519,22 +511,20 @@ public class Robot extends IterativeRobot
 		
 		if (feederButton.isPressed())
 		{
-			feeder.set(-1.0);
+			this.setFeederPower(0.75);
 		}
 		else
 		{
-			feeder.set(0.0);
+			this.setFeederPower(0.0);
 		}
 
 		if (shooterButton.isPressed())
 		{
-			shooter1.set(-0.75);
-			shooter2.set(+0.75);
+			this.setShooterPower(0.75);
 		}
 		else
 		{
-			shooter1.set(0.0);
-			shooter2.set(0.0);
+			this.setShooterPower(0.0);
 		}
 
 		if (shooterHoodButton.isPressed())
@@ -584,6 +574,17 @@ public class Robot extends IterativeRobot
 		}
 	}
 	
+	
+	public void setShooterPower(double power)
+	{
+		shooter1.set(-power);
+		shooter2.set(power);
+	}
+	
+	public void setFeederPower(double power)
+	{
+		feeder.set(-power);
+	}
 	
 	public void driveStraight(double bearing, double power)
 	{
