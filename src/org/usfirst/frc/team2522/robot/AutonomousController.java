@@ -3,6 +3,8 @@ package org.usfirst.frc.team2522.robot;
 import org.usfirst.frc.team2522.robot.auto.*;
 
 import java.util.Map;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -42,7 +44,15 @@ public final class AutonomousController
 	
 	/**
 	 * 
-	 */
+	 */	
+	public enum FieldPosition {
+		Boiler, Center, Outside
+	}
+	
+	public enum AutoMode {
+		PlaceBoilerPeg, PlaceCenterPeg, PlaceOutsidePeg
+	}
+	
 	@SuppressWarnings("serial")
 	private static final Map<Integer, Map<Integer, AutoRoutine>> autoFieldPosMap = new HashMap<Integer, Map<Integer, AutoRoutine>>() {{
 				put(1, new HashMap<Integer, AutoRoutine>() {{
@@ -55,9 +65,7 @@ public final class AutonomousController
 					put(1, new AutoPlaceOutsidePeg());
 				}});
 			}};
-			
-			
-			
+						
 	/**
 	 * Returns the current alliance of the robot.
 	 * 
@@ -79,10 +87,14 @@ public final class AutonomousController
 	 *  
 	 * @return The id of the field starting position.
 	 */
-	public static int getFieldStartPosition()
+	public static int getFieldStartPosition(Robot robot)
 	{
-		// TODO: read field select switch from drive station.
-		return 3;
+		int fieldValue = 0;
+		fieldValue += robot.autoselectStick.getRawButton(2) ? 1 : 0;
+		fieldValue += robot.autoselectStick.getRawButton(3) ? 2 : 0;
+		fieldValue += robot.autoselectStick.getRawButton(4) ? 4 : 0;
+		fieldValue += robot.autoselectStick.getRawButton(5) ? 8 : 0;
+		return fieldValue + 1;
 	}
 
 	/**
@@ -90,24 +102,28 @@ public final class AutonomousController
 	 * 
 	 * @return
 	 */
-	public static int getAutoRoutineId()
+	public static int getAutoRoutineId(Robot robot)
 	{
-		// TODO: read auto routine select switch from drive station.
-		return 1;
+		int autoValue = 0;
+		autoValue += robot.autoselectStick.getRawButton(13) ? 1 : 0;
+		autoValue += robot.autoselectStick.getRawButton(14) ? 2 : 0;
+		autoValue += robot.autoselectStick.getRawButton(15) ? 4 : 0;
+		autoValue += robot.autoselectStick.getRawButton(16) ? 8 : 0;
+		return autoValue + 1;
 	}
 	
 	/**
 	 *  
 	 * @return
 	 */
-	public static AutoRoutine getAutoRoutine()
+	public static AutoRoutine getAutoRoutine(Robot robot)
 	{
 		AutoRoutine result = null;
 		
-		Map<Integer, AutoRoutine> autoRoutines = autoFieldPosMap.get(getFieldStartPosition());
+		Map<Integer, AutoRoutine> autoRoutines = autoFieldPosMap.get(getFieldStartPosition(robot));
 		if (autoRoutines != null)
 		{
-			result = autoRoutines.get(getAutoRoutineId());
+			result = autoRoutines.get(getAutoRoutineId(robot));
 		}
 		
 		return result;
@@ -127,7 +143,7 @@ public final class AutonomousController
 	
 	/**
 	 * 
-	 * @param robot
+	 * @param robott
 	 */
 	public static void Initialize(Robot robot)
 	{
@@ -136,8 +152,9 @@ public final class AutonomousController
 
 		autoIsDriving = false;
 		
-		autoRoutine = getAutoRoutine();
-		autoRoutine.Initialize(robot);
+		autoRoutine = getAutoRoutine(robot);
+		if(autoRoutine != null)
+			autoRoutine.Initialize(robot);
 	}
 	
 	/**

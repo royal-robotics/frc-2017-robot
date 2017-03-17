@@ -63,10 +63,17 @@ public class Robot extends IterativeRobot
 
 	
 	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-	public final double kRAf = 0.00130; //0.00095;
-	public final double kRBf = 0.00080; //0.00035
+	public final double kRAf = 0.00090; //0.00095;
+	public final double kRBf = 0.00070; //0.00035
 	public final double kRBp = 0.00150; //0.00280
 	public final double kRBd = 0.00000; //0.00010
+
+	// practice robot
+//	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+//	public final double kRAf = 0.00130;
+//	public final double kRBf = 0.00080;
+//	public final double kRBp = 0.00150;
+//	public final double kRBd = 0.00000; //0.00010
 	
 	public double lastTime = 0.0;
 	public double lastBearing = 0.0;
@@ -132,13 +139,14 @@ public class Robot extends IterativeRobot
 	Joystick leftStick = new Joystick(0);
 	Joystick rightStick = new Joystick(1);
 	Joystick operatorStick = new Joystick(2);
+	Joystick autoselectStick = new Joystick(3);
 	
 	// Driver Controls
 	//
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
 	
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
-	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
+//	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
 	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);
 	Button showMaskButton  = new Button(leftStick, 8, ButtonType.Toggle);
 	Button showTargetsButton = new Button(leftStick, 9, ButtonType.Toggle);
@@ -194,6 +202,7 @@ public class Robot extends IterativeRobot
 	{		
 		// Init Robot Timer
 		//
+		AutonomousController.Initialize(this);
 		robotTimer.reset();
 		robotTimer.start();
 		lastTime = robotTimer.get();
@@ -263,11 +272,11 @@ public class Robot extends IterativeRobot
     		while (!Thread.interrupted()) {
     			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
     			{
-    				ImageUtils.processFrame(false, 2.0, 3.0, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+    				ImageUtils.processFrame(false, 2.0, 3.0, showImageBlobs, showImageTargets, false/*takeImageButton.isPressed()*/);
     			}
     			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
     			{
-    				ImageUtils.processFrame(true, 0.15, 0.5, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+    				ImageUtils.processFrame(true, 0.15, 0.5, showImageBlobs, showImageTargets, false/*takeImageButton.isPressed()*/);
     			}
     		}
     	});
@@ -577,8 +586,8 @@ public class Robot extends IterativeRobot
 	
 	public void setShooterPower(double power)
 	{
-		shooter1.set(-power);
-		shooter2.set(power);
+		shooter1.set(power);
+		shooter2.set(-power);
 	}
 	
 	public void setFeederPower(double power)
@@ -688,7 +697,7 @@ public class Robot extends IterativeRobot
 	{
 		wheelDrive = SmartDashboard.getBoolean("wheelDrive", true);
 
-		AutoRoutine autoRoutine = AutonomousController.getAutoRoutine();
+		AutoRoutine autoRoutine = AutonomousController.getAutoRoutine(this);
 		if (autoRoutine != null)
 		{
 			SmartDashboard.putString("AutoMode", autoRoutine.getName());
@@ -699,6 +708,8 @@ public class Robot extends IterativeRobot
 			SmartDashboard.putString("AutoMode", "Do Nothing");
 			SmartDashboard.putNumber("AutoStep", 0);
 		}
+		SmartDashboard.putNumber("Start Field Position", AutonomousController.getFieldStartPosition(this));
+		SmartDashboard.putNumber("Auto Routine Id", AutonomousController.getAutoRoutineId(this));
 		
 		SmartDashboard.putNumber("Angle", this.getCurrentAngle());
 		SmartDashboard.putNumber("Bearing", this.getBearing());
@@ -716,7 +727,7 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("rightDrivePower", rightDrive1.get());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
 
-		SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
+//		SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
 
 		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
