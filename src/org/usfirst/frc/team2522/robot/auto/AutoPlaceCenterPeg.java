@@ -129,6 +129,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		}
 		else
 		{
+			robot.shifter.set(DoubleSolenoid.Value.kForward); // high gear
 			robot.myDrive.tankDrive(0.0, 0.0);
 		}
 	}

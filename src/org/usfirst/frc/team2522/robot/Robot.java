@@ -56,7 +56,7 @@ public class Robot extends IterativeRobot
 	
 	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public final double kAf = 0.0037;
-	public final double kBf = 0.0020;
+	public final double kBf = 0.0012;	// .0020
 	public final double kDp = 0.0165;
 	public final double kDd = 0.0006;
 //	public final double kBp = 0.0015;
@@ -249,12 +249,12 @@ public class Robot extends IterativeRobot
 		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		climber2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
     	
-    	shifter.set(DoubleSolenoid.Value.kForward);
-    	intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
-    	gearWall.set(DoubleSolenoid.Value.kReverse);
-    	gearPushout.set(DoubleSolenoid.Value.kReverse);
-    	gearDrapes.set(DoubleSolenoid.Value.kReverse);
-    	shooterHood.set(DoubleSolenoid.Value.kReverse);
+    	shifter.set(DoubleSolenoid.Value.kReverse);			// low gear
+    	intakeSolenoid.set(DoubleSolenoid.Value.kReverse);	// intake down
+    	gearWall.set(DoubleSolenoid.Value.kReverse);		// wall down
+    	gearPushout.set(DoubleSolenoid.Value.kReverse);		// pushes back
+    	gearDrapes.set(DoubleSolenoid.Value.kReverse);		// draps up
+    	shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down
 
     	// Init Motion Control Values
 		//
