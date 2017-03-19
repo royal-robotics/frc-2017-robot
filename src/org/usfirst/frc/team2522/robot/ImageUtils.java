@@ -84,7 +84,7 @@ public class ImageUtils
 		ImageUtils.camera = camera;
 	}
 	
-	public static List<Rect> processFrame(boolean highCamera, double minAspectRatio, double maxAspectRatio, boolean showImageBlobs, boolean showImageTargets, boolean saveImage)
+	public static List<Rect> processFrame(boolean highCamera, double minAspectRatio, double maxAspectRatio, boolean showDashboard, boolean showImageBlobs, boolean showImageTargets, boolean saveImage)
 	{
 		List<Rect> rectangles = new ArrayList<Rect>();
 
@@ -98,12 +98,12 @@ public class ImageUtils
 			else
 			{
 				rectangles = ImageUtils.getRectangles(src_image, minAspectRatio, maxAspectRatio);
-				
+
 				if (saveImage)
 				{
-					ImageUtils.saveRectangles(rectangles);
+					ImageUtils.saveImage(src_image, rectangles);
 				}
-				
+								
 				if (showImageBlobs)
 				{
 					ImageUtils.cameraStream.putFrame(ImageUtils.getMask(src_image));
@@ -135,7 +135,10 @@ public class ImageUtils
 						}
 					}
 					
-					ImageUtils.cameraStream.putFrame(src_image);
+					if (showDashboard)
+					{
+						ImageUtils.cameraStream.putFrame(src_image);
+					}
 				}
 			}
 		}
@@ -150,12 +153,22 @@ public class ImageUtils
 		
 		return msk_image;
 	}
-	
+
 	public static List<Rect> getRectangles(Mat src_image, double minAspectRatio, double maxAspectRation)
+	{
+		return getRectangles(src_image, minAspectRatio, maxAspectRation, null);
+	}
+	
+	public static List<Rect> getRectangles(Mat src_image, double minAspectRatio, double maxAspectRation, String imgName)
 	{
 		ArrayList<Rect> results = new ArrayList<Rect>();
 		
 		msk_image = getMask(src_image);
+		
+		if (imgName != null)
+		{
+			Imgcodecs.imwrite(imgName+"_msk.png", msk_image);
+		}
 		
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Imgproc.findContours(msk_image, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
@@ -191,6 +204,11 @@ public class ImageUtils
 	
 	public static double getPegRotationError(double range)
 	{
+		return getPegRotationError(range, null);
+	}
+	
+	public static double getPegRotationError(double range, String imgName)
+	{
 		double result = Double.NaN;
 		
 		if (ImageUtils.cameraSink != null)
@@ -202,9 +220,90 @@ public class ImageUtils
 			}
 			else
 			{
-				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0);
+				if (imgName != null)
+				{
+					Imgcodecs.imwrite(imgName+"_src.png", src_image);
+				}
+				
+				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0, imgName);
+				
+				if (imgName != null)
+				{
+					for(int i = 0; i < rectangles.size(); i++)
+					{
+						Rect r = rectangles.get(i);
+						Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(255, 0, 0), 3);
+					}
+					Imgcodecs.imwrite(imgName+"_pot.png", src_image);
+				}
+				
+				List<List<Rect>> sets = new ArrayList<List<Rect>>();
+				
+				while(rectangles.size() > 1)
+				{
+					List<Rect> sameHeightRects = new ArrayList<Rect>();
+					List<Rect> remainingRects = new ArrayList<Rect>();
+					
+					for(int i = 0; i < rectangles.size(); i++)
+					{
+						if (sameHeightRects.size() == 0)
+						{
+							sameHeightRects.add(rectangles.get(i));
+						}
+						else
+						{
+							if ((Math.abs(sameHeightRects.get(0).y - rectangles.get(i).y) <= 4)
+							 && (Math.abs(sameHeightRects.get(0).height - rectangles.get(i).height) <= 4))
+							{
+								sameHeightRects.add(rectangles.get(i));
+							}
+							else
+							{
+								remainingRects.add(rectangles.get(i));
+							}
+						}
+					}
+					
+					if (sameHeightRects.size() == 2)
+					{
+						sets.add(sameHeightRects);
+					}
+					
+					rectangles = remainingRects;
+				}
+				
+				rectangles = new ArrayList<Rect>();
+				int maxArea = 0;
+				for(int i = 0; i < sets.size(); i++)
+				{
+					Rect r1 = sets.get(i).get(0);
+					Rect r2 = sets.get(i).get(1);
+					int area = (r1.height * r1.width) + (r2.height * r2.width);
+					
+					if (rectangles.size() == 0)
+					{
+						rectangles = sets.get(i);
+						maxArea = area;
+					}
+					else if (area > maxArea)
+					{
+						rectangles = sets.get(i);
+						maxArea = area;
+					}
+				}
+				
 				if (rectangles.size() == 2)
 				{
+					if (imgName != null)
+					{
+						for(int i = 0; i < rectangles.size(); i++)
+						{
+							Rect r = rectangles.get(i);
+							Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+						}
+						Imgcodecs.imwrite(imgName+"_trg.png", src_image);
+					}
+
 					double pixelWidth = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width) - Math.min(rectangles.get(0).x, rectangles.get(1).x);
 					double pe = getPegTargetPixelError(rectangles);
 
@@ -263,6 +362,62 @@ public class ImageUtils
 			else
 			{
 				List<Rect> rectangles = getRectangles(src_image, 0.15, 0.5);
+				
+				List<List<Rect>> sets = new ArrayList<List<Rect>>();
+				
+				while(rectangles.size() > 1)
+				{
+					List<Rect> sameWidthtRects = new ArrayList<Rect>();
+					List<Rect> remainingRects = new ArrayList<Rect>();
+					
+					for(int i = 0; i < rectangles.size(); i++)
+					{
+						if (sameWidthtRects.size() == 0)
+						{
+							sameWidthtRects.add(rectangles.get(i));
+						}
+						else
+						{
+							if ((Math.abs(sameWidthtRects.get(0).x - rectangles.get(i).x) <= 5)
+							 && (Math.abs(sameWidthtRects.get(0).width - rectangles.get(i).width) <= 5))
+							{
+								sameWidthtRects.add(rectangles.get(i));
+							}
+							else
+							{
+								remainingRects.add(rectangles.get(i));
+							}
+						}
+					}
+					
+					if (sameWidthtRects.size() == 2)
+					{
+						sets.add(sameWidthtRects);
+					}
+					
+					rectangles = remainingRects;
+				}
+				
+				rectangles = new ArrayList<Rect>();
+				int maxArea = 0;
+				for(int i = 0; i < sets.size(); i++)
+				{
+					Rect r1 = sets.get(i).get(0);
+					Rect r2 = sets.get(i).get(1);
+					int area = (r1.height * r1.width) + (r2.height * r2.width);
+					
+					if (rectangles.size() == 0)
+					{
+						rectangles = sets.get(i);
+						maxArea = area;
+					}
+					else if (area > maxArea)
+					{
+						rectangles = sets.get(i);
+						maxArea = area;
+					}
+				}
+				
 				if (rectangles.size() == 2)
 				{
 					double pixelHeight = Math.max(rectangles.get(0).y + rectangles.get(0).height, rectangles.get(1).y + rectangles.get(1).height) - Math.min(rectangles.get(0).y, rectangles.get(1).y);
@@ -298,7 +453,7 @@ public class ImageUtils
 		return result;
 	}
 	
-	public static void saveRectangles(List<Rect> rectangles)
+	public static void saveImage(Mat src, List<Rect> rectangles)
 	{
 		PrintStream ps = null;
 		
@@ -311,8 +466,18 @@ public class ImageUtils
 			}
 
 			System.out.println("Image Rects File Created: " + f.getName());
-			
 			ps = new PrintStream(f);
+	
+			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_src.png"), src);
+			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_msk.png"), ImageUtils.getMask(src));
+			Mat tmp = new Mat();
+			src.copyTo(tmp);
+			for(int index = 0; index < rectangles.size(); index++)
+			{
+				Rect r = rectangles.get(index);
+				Imgproc.rectangle(tmp, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+			}
+			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_trg.png"), tmp);
 		}
 		catch(IOException e)
 		{

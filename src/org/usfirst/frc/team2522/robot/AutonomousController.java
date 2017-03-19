@@ -60,6 +60,7 @@ public final class AutonomousController
 				}});
 				put(2, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceCenterPeg());
+					put(2, new AutoPlaceCenterDeadRecon());
 				}});
 				put(3, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceOutsidePeg());

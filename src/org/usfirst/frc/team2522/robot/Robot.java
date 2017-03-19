@@ -146,7 +146,7 @@ public class Robot extends IterativeRobot
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
 	
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
-//	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
+	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
 	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);
 	Button showMaskButton  = new Button(leftStick, 8, ButtonType.Toggle);
 	Button showTargetsButton = new Button(leftStick, 9, ButtonType.Toggle);
@@ -159,11 +159,11 @@ public class Robot extends IterativeRobot
 
 	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
 	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
-	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Toggle);
+	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Hold);
 	
 	// Operator Controls
 	//
-	POVButton intakeButton = new POVButton(operatorStick, 0, 0, ButtonType.Toggle);
+	POVButton intakeButton = new POVButton(operatorStick, 0, 0, ButtonType.Hold);
 	POVButton gearPushoutButton = new POVButton(operatorStick, 0, 90, ButtonType.Hold);
 	
 	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
@@ -180,7 +180,8 @@ public class Robot extends IterativeRobot
 	
 	
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
-	public static double driveTranDistancePerPulse = (3.50 * 3.1415) / (360.00);
+	public static double leftDriveTranDistancePerPulse = (3.50 * 3.1415) / (360.00);
+	public static double rightDriveTranDistancePerPulse = (3.50 * 3.1415) / (360.00);
 	public static double shooterDistancePerPulse = (3.50 * 3.1415) / (1.00 * 1.00) * (1.00);
 
 	boolean wheelDrive = true;
@@ -210,9 +211,9 @@ public class Robot extends IterativeRobot
 		// Init Drive Base Encoders
 		//
 		leftDriveEncoder.setReverseDirection(true);
-		leftDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
+		leftDriveEncoder.setDistancePerPulse(leftDriveTranDistancePerPulse);
 		leftDriveEncoder.reset();
-		rightDriveEncoder.setDistancePerPulse(driveTranDistancePerPulse);
+		rightDriveEncoder.setDistancePerPulse(rightDriveTranDistancePerPulse);
 		rightDriveEncoder.reset();
 				
 		
@@ -268,20 +269,23 @@ public class Robot extends IterativeRobot
     	
     	ImageUtils.setCamera(cameraLow);
 
-    	visionThread = new Thread(() -> {
-    		while (!Thread.interrupted()) {
-    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
-    			{
-    				ImageUtils.processFrame(false, 2.0, 3.0, showImageBlobs, showImageTargets, false/*takeImageButton.isPressed()*/);
-    			}
-    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
-    			{
-    				ImageUtils.processFrame(true, 0.15, 0.5, showImageBlobs, showImageTargets, false/*takeImageButton.isPressed()*/);
-    			}
-    		}
-    	});
+    	if (this.testMode)
+    	{
+	    	visionThread = new Thread(() -> {
+	    		while (!Thread.interrupted()) {
+	    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
+	    			{
+	    				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    			}
+	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
+	    			{
+	    				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    			}
+	    		}
+	    	});
     	
-		visionThread.start();
+			visionThread.start();
+    	}
 		
 		driveController = new DriveController(this, 200);
 		driveController.start();
@@ -365,6 +369,7 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopInit()
 	{
+		ImageUtils.setCamera(null);
 		this.resetMotion();
 	}
 	
@@ -564,8 +569,8 @@ public class Robot extends IterativeRobot
 		
 		if (climberButton.isPressed())
 		{
-			climber1.set(+0.5);
-			climber2.set(+0.5);
+			climber1.set(-1.0);
+			climber2.set(-1.0);
 		}
 		else
 		{
@@ -757,7 +762,7 @@ public class Robot extends IterativeRobot
 		}
 		SmartDashboard.putNumber("Camera Exposure", exposure);
 		
-		double whiteBalance = SmartDashboard.getNumber("Camera WB", -3.0);
+		double whiteBalance = SmartDashboard.getNumber("Camera WB", 1.0);
 		if (whiteBalance != currentWhiteBalance)
 		{
 			SmartDashboard.putNumber("Camera WB", whiteBalance);
@@ -776,8 +781,8 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("Camera WB", whiteBalance);
 		
 		int hsvLowerHue = (int)SmartDashboard.getNumber("H Lower", 45.0);
-		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 50.0);
-		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 100.0);		
+		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 75.0);
+		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 75.0);		
 		if ((ImageUtils.hsvLowerBounds.val[0] != hsvLowerHue) || (ImageUtils.hsvLowerBounds.val[1] != hsvLowerSat) || (ImageUtils.hsvLowerBounds.val[2] != hsvLowerVal))
 		{
 			ImageUtils.hsvLowerBounds = new Scalar(hsvLowerHue, hsvLowerSat, hsvLowerVal, 0);

@@ -1,15 +1,13 @@
 package org.usfirst.frc.team2522.robot.auto;
 
-import org.usfirst.frc.team2522.robot.*;
+import org.usfirst.frc.team2522.robot.AutoRoutine;
+import org.usfirst.frc.team2522.robot.AutonomousController;
+import org.usfirst.frc.team2522.robot.ImageUtils;
+import org.usfirst.frc.team2522.robot.Robot;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 
-public class AutoPlaceCenterPeg extends AutoRoutine
-{
-	/**
-	 * 
-	 */
-	public static double alignRotation = 0.0;
+public class AutoPlaceCenterDeadRecon extends AutoRoutine {
 
 	/**
 	 * 
@@ -18,8 +16,6 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 	public void Initialize(Robot robot)
 	{
 		super.Initialize(robot);
-		
-		alignRotation = 0.0;
 		
 		ImageUtils.setCamera(robot.cameraLow);
 	}
@@ -30,60 +26,19 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 	public void Periodic(Robot robot) {
 		if (autoStep == 0)
 		{
-			if (AutonomousController.driveTo(robot, 24.0))
+			if (AutonomousController.driveTo(robot, 57.0))
 			{
 				autoStep++;
 			}
 		}
-		else if (autoStep == 1)
-		{
-			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "/home/lvuser/ImageStep" + autoStep);
-			while(alignRotation == Double.NaN)
-			{
-				alignRotation = ImageUtils.getPegRotationError(60.0);
-			}
-			autoStep++;
-		}
-		else if (autoStep == 2)
-		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 3) 
-		{
-			if (AutonomousController.driveTo(robot, 33.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 4)
-		{
-			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "/home/lvuser/AutoImage" + autoStep);
-			while(alignRotation == Double.NaN)
-			{
-				alignRotation = ImageUtils.getPegRotationError(60.0);
-			}
-			autoStep++;
-		}
-		else if (autoStep == 5)
-		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 6) 
+		else if (autoStep == 1) 
 		{
 			if (AutonomousController.driveTo(robot, 27.0, 150, 80.0))
 			{
 				autoStep++;
 			}
 		}
-		else if (autoStep == 7) 
+		else if (autoStep == 2) 
 		{
 			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -94,7 +49,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			}
 			autoStep++;
 		}
-		else if (autoStep == 8) 
+		else if (autoStep == 3) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -105,7 +60,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			}
 			autoStep++;
 		}
-		else if (autoStep == 9) 
+		else if (autoStep == 4) 
 		{
 			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
 			{
@@ -118,7 +73,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 10) 
+		else if (autoStep == 5) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
 
