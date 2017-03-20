@@ -52,7 +52,7 @@ public class Robot extends IterativeRobot
 	
 	public DriveController driveController = null;
 	
-	public boolean testMode = true;
+	public boolean testMode = false;
 	
 	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public final double kAf = 0.0037;
@@ -61,11 +61,17 @@ public class Robot extends IterativeRobot
 	public final double kDd = 0.0006;
 //	public final double kBp = 0.0015;
 
-	
+
+	// competition robot
+//	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+//	public final double kRAf = 0.00090; //0.00095;
+//	public final double kRBf = 0.00070; //0.00035
+//	public final double kRBp = 0.00150; //0.00280
+//	public final double kRBd = 0.00000; //0.00010
 	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-	public final double kRAf = 0.00090; //0.00095;
-	public final double kRBf = 0.00070; //0.00035
-	public final double kRBp = 0.00150; //0.00280
+	public final double kRAf = 0.00130;
+	public final double kRBf = 0.00080;
+	public final double kRBp = 0.00150;
 	public final double kRBd = 0.00000; //0.00010
 
 	// practice robot
@@ -269,23 +275,23 @@ public class Robot extends IterativeRobot
     	
     	ImageUtils.setCamera(cameraLow);
 
-    	if (this.testMode)
-    	{
-	    	visionThread = new Thread(() -> {
-	    		while (!Thread.interrupted()) {
-	    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
-	    			{
-	    				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-	    			}
-	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
-	    			{
-	    				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-	    			}
-	    		}
-	    	});
-    	
-			visionThread.start();
-    	}
+//    	if (this.testMode)
+//    	{
+//	    	visionThread = new Thread(() -> {
+//	    		while (!Thread.interrupted()) {
+//	    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
+//	    			{
+//	    				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+//	    			}
+//	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
+//	    			{
+//	    				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+//	    			}
+//	    		}
+//	    	});
+//    	
+//			visionThread.start();
+//    	}
 		
 		driveController = new DriveController(this, 200);
 		driveController.start();
@@ -296,37 +302,50 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
-		if (motionRecordButton.isPressed())
+		if (this.testMode)
 		{
-			this.recordMotion = true;
-		}
-		else
-		{
-			this.recordMotion = false;
-		}
-		
-		if (switchCameras.isPressed())
-		{
-			if ((ImageUtils.camera == cameraLow) && (cameraHigh != null))
+			if (motionRecordButton.isPressed())
 			{
-				ImageUtils.setCamera(cameraHigh);
+				this.recordMotion = true;
 			}
 			else
 			{
-				ImageUtils.setCamera(cameraLow);
+				this.recordMotion = false;
+			}
+		
+			if (switchCameras.isPressed())
+			{
+				if ((ImageUtils.camera == cameraLow) && (cameraHigh != null))
+				{
+					ImageUtils.setCamera(cameraHigh);
+				}
+				else
+				{
+					ImageUtils.setCamera(cameraLow);
+				}
+			}
+		
+			if (showMaskButton.isPressed())
+			{
+				showImageBlobs = ! showImageBlobs;
+			}
+			
+			if (showTargetsButton.isPressed())
+			{
+				showImageTargets = ! showImageTargets;
+			}
+	
+		
+			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
+			{
+				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+			}
+			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
+			{
+				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
 			}
 		}
-		
-		if (showMaskButton.isPressed())
-		{
-			showImageBlobs = ! showImageBlobs;
-		}
-		
-		if (showTargetsButton.isPressed())
-		{
-			showImageTargets = ! showImageTargets;
-		}
-			
+    			
 		writeDashboard();		
 	}
 
@@ -369,7 +388,10 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopInit()
 	{
-		ImageUtils.setCamera(null);
+		if (! this.testMode)
+		{
+			ImageUtils.setCamera(null);
+		}
 		this.resetMotion();
 	}
 	

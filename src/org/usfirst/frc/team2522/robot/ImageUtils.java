@@ -42,7 +42,8 @@ public class ImageUtils
 		
     	if (camera != null)
     	{
-    		camera.setResolution(imageWidth, imageHeight);			
+    		camera.setResolution(imageWidth, imageHeight);
+    		camera.setFPS(15);
 	    	
     		if (!camera.isConnected())
 	    	{
@@ -65,8 +66,8 @@ public class ImageUtils
 		{
 			ImageUtils.cameraStream = CameraServer.getInstance().putVideo("camera", imageWidth, imageHeight);
 		}
-		
-		if ((ImageUtils.camera == null) || (ImageUtils.camera.getName() != camera.getName()))
+
+		if ((ImageUtils.camera != null) && ((camera == null) || (ImageUtils.camera.getName() != camera.getName())))
 		{
 			if (ImageUtils.cameraSink != null)
 			{
@@ -167,7 +168,8 @@ public class ImageUtils
 		
 		if (imgName != null)
 		{
-			Imgcodecs.imwrite(imgName+"_msk.png", msk_image);
+			
+			Imgcodecs.imwrite("/home/lvuser/" + imgName+"_msk.png", msk_image);
 		}
 		
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -222,7 +224,7 @@ public class ImageUtils
 			{
 				if (imgName != null)
 				{
-					Imgcodecs.imwrite(imgName+"_src.png", src_image);
+					Imgcodecs.imwrite("/home/lvuser/" + imgName+"_src.png", src_image);
 				}
 				
 				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0, imgName);
@@ -234,7 +236,7 @@ public class ImageUtils
 						Rect r = rectangles.get(i);
 						Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(255, 0, 0), 3);
 					}
-					Imgcodecs.imwrite(imgName+"_pot.png", src_image);
+					Imgcodecs.imwrite("/home/lvuser/" + imgName+"_pot.png", src_image);
 				}
 				
 				List<List<Rect>> sets = new ArrayList<List<Rect>>();
@@ -301,7 +303,7 @@ public class ImageUtils
 							Rect r = rectangles.get(i);
 							Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
 						}
-						Imgcodecs.imwrite(imgName+"_trg.png", src_image);
+						Imgcodecs.imwrite("/home/lvuser/" + imgName+"_trg.png", src_image);
 					}
 
 					double pixelWidth = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width) - Math.min(rectangles.get(0).x, rectangles.get(1).x);
@@ -313,7 +315,8 @@ public class ImageUtils
 						double b = pe * 10.5 / pixelWidth;
 						
 //						b = b - 1.0; // adjustment for practice bot camera placement.
-						
+SmartDashboard.putNumber("A:", a);
+SmartDashboard.putNumber("B:", b);
 						result = Math.toDegrees(Math.atan(b / a));
 					}
 				}
@@ -467,17 +470,24 @@ public class ImageUtils
 
 			System.out.println("Image Rects File Created: " + f.getName());
 			ps = new PrintStream(f);
-	
-			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_src.png"), src);
-			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_msk.png"), ImageUtils.getMask(src));
-			Mat tmp = new Mat();
-			src.copyTo(tmp);
-			for(int index = 0; index < rectangles.size(); index++)
+
+			try
 			{
-				Rect r = rectangles.get(index);
-				Imgproc.rectangle(tmp, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+				Imgcodecs.imwrite("/home/lvuser/" + f.getName().replaceAll(".txt", "_src.png"), src);
+				Imgcodecs.imwrite("/home/lvuser/" + f.getName().replaceAll(".txt", "_msk.png"), ImageUtils.getMask(src));
+				Mat tmp = new Mat();
+				src.copyTo(tmp);
+				for(int index = 0; index < rectangles.size(); index++)
+				{
+					Rect r = rectangles.get(index);
+					Imgproc.rectangle(tmp, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+				}
+				Imgcodecs.imwrite("/home/lvuser/" + f.getName().replaceAll(".txt", "_trg.png"), tmp);
 			}
-			Imgcodecs.imwrite(f.getName().replaceAll(".txt", "_trg.png"), tmp);
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
 		}
 		catch(IOException e)
 		{

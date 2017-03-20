@@ -7,6 +7,7 @@ import org.usfirst.frc.team2522.robot.Robot;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class AutoPlaceOutsidePeg extends AutoRoutine
 {
@@ -38,30 +39,31 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 		}
 		else if (autoStep == 1)
 		{
-			double angle = 70;							// practice 60
+			double angle = 65;							// practice 60
 			
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
 			{
 				angle = -angle;
 			}
 				
-			if (AutonomousController.rotateTo(robot, angle))
+			if (AutonomousController.rotateTo(robot, angle, 300.0, 500.0))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 2) 
 		{
-			alignRotation = ImageUtils.getPegRotationError(75.0, "/home/lvuser/AutoImage" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(75.0, "AutoImage" + autoStep);
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(75.0);
 			}
+			SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 3)
 		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
+			if (AutonomousController.rotateTo(robot, alignRotation, 300.0, 500.0))
 			{
 				autoStep++;
 			}
@@ -75,7 +77,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 		}
 		else if (autoStep == 5) 
 		{
-			alignRotation = ImageUtils.getPegRotationError(30.0, "/home/lvuser/AutoImage" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImage" + autoStep);
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(30.0);
@@ -84,7 +86,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 		}
 		else if (autoStep == 6)
 		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
+			if (AutonomousController.rotateTo(robot, alignRotation, 300.0, 500.0))
 			{
 				autoStep++;
 			}
