@@ -75,11 +75,11 @@ public class ImageUtils
 				ImageUtils.cameraSink.free();
 				ImageUtils.cameraSink = null;
 			}
+		}
 
-			if (camera != null)
-			{
-				ImageUtils.cameraSink = CameraServer.getInstance().getVideo(camera);
-			}
+		if (camera != null)
+		{
+			ImageUtils.cameraSink = CameraServer.getInstance().getVideo(camera);
 		}
 
 		ImageUtils.camera = camera;
@@ -136,25 +136,29 @@ public class ImageUtils
 						for(int index = 0; index < rectangles.size(); index++)
 						{
 							Rect r = rectangles.get(index);
-							Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+							Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(255, 0, 0), 3);
 	
 							s = s + "{" + r.x + "," + r.y + "," + r.width + "," + r.height+"}";
 						}
 	
 						SmartDashboard.putString("Image-Rects", s);
 
-						double targetCenter = target.x + ((double)target.width / 2.0); 
-						double targetError = targetCenter - ((double)imageWidth / 2.0);
-						SmartDashboard.putNumber("Target-Error", targetError);
+						if (target != null)
+						{
+							Imgproc.rectangle(src_image, new Point(target.x, target.y), new Point(target.x+target.width, target.y+target.height), new Scalar(0, 0, 255), 3);
+
+							double targetCenter = target.x + ((double)target.width / 2.0); 
+							double targetError = targetCenter - ((double)imageWidth / 2.0);
+							SmartDashboard.putNumber("Target-Error", targetError);
 						
-						if (highCamera)
-						{
-							SmartDashboard.putNumber("Target-Dist", getBoilerTargetDistance(target));
-						}
-						else
-						{
-							SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(target));
-							
+							if (highCamera)
+							{
+								SmartDashboard.putNumber("Target-Dist", getBoilerTargetDistance(target));
+							}
+							else
+							{
+								SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(target));
+							}
 						}
 					}
 					
@@ -299,8 +303,8 @@ SmartDashboard.putNumber("B:", b);
 				}
 				else
 				{
-					if ((Math.abs(sameHeightRects.get(0).y - rectangles.get(i).y) <= 4)
-					 && (Math.abs(sameHeightRects.get(0).height - rectangles.get(i).height) <= 4))
+					if ((Math.abs(sameHeightRects.get(0).y - rectangles.get(i).y) <= 8)
+					 && (Math.abs(sameHeightRects.get(0).height - rectangles.get(i).height) <= 8))
 					{
 						sameHeightRects.add(rectangles.get(i));
 					}
@@ -341,10 +345,10 @@ SmartDashboard.putNumber("B:", b);
 		
 		if (finalRects.size() == 2)
 		{
-			Rect r1 = rectangles.get(0);
-			Rect r2 = rectangles.get(1);
+			Rect r1 = finalRects.get(0);
+			Rect r2 = finalRects.get(1);
 			int x = Math.min(r1.x, r2.x);
-			int y = Math.min(r1.height, r2.height);
+			int y = Math.min(r1.y, r2.y);
 			int width = Math.max((r1.x + r1.width) - x, (r2.x + r2.width) - x);
 			int height = Math.max((r1.y + r1.height) - y, (r2.y + r2.height) - y);
 					
@@ -379,7 +383,7 @@ SmartDashboard.putNumber("B:", b);
 	{
 		Rect result = null;
 		
-		List<Rect> rectangles = getRectangles(srcImg, 4, 4, 0.15, 0.5, imgName);
+		List<Rect> rectangles = getRectangles(srcImg, 4, 4, 0.15, 0.6, imgName);
 				
 		List<List<Rect>> sets = new ArrayList<List<Rect>>();
 		
@@ -396,8 +400,8 @@ SmartDashboard.putNumber("B:", b);
 				}
 				else
 				{
-					if ((Math.abs(sameWidthRects.get(0).x - rectangles.get(i).x) <= 4)
-					 && (Math.abs(sameWidthRects.get(0).width - rectangles.get(i).width) <= 4))
+					if ((Math.abs(sameWidthRects.get(0).x - rectangles.get(i).x) <= 8)
+					 && (Math.abs(sameWidthRects.get(0).width - rectangles.get(i).width) <= 8))
 					{
 						sameWidthRects.add(rectangles.get(i));
 					}
@@ -438,10 +442,10 @@ SmartDashboard.putNumber("B:", b);
 		
 		if (finalRects.size() == 2)
 		{
-			Rect r1 = rectangles.get(0);
-			Rect r2 = rectangles.get(1);
+			Rect r1 = finalRects.get(0);
+			Rect r2 = finalRects.get(1);
 			int x = Math.min(r1.x, r2.x);
-			int y = Math.min(r1.height, r2.height);
+			int y = Math.min(r1.y, r2.y);
 			int width = Math.max((r1.x + r1.width) - x, (r2.x + r2.width) - x);
 			int height = Math.max((r1.y + r1.height) - y, (r2.y + r2.height) - y);
 					

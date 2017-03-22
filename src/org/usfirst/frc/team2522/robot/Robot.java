@@ -45,7 +45,6 @@ import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.hal.I2CJNI;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-	//  drive system test  //
 public class Robot extends IterativeRobot
 {
 	public Timer robotTimer = new Timer();
@@ -139,6 +138,7 @@ public class Robot extends IterativeRobot
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
 	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
+	Button testTrackTargetButton = new Button(leftStick, 5, ButtonType.Hold);
 	Button testDrivePowerButton = new Button(leftStick, 6, ButtonType.Hold);
 	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);
 	Button showMaskButton  = new Button(leftStick, 8, ButtonType.Toggle);
@@ -149,9 +149,10 @@ public class Robot extends IterativeRobot
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
 
+	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Toggle);
+	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Hold);
 	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
 	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
-	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Hold);
 	
 	// Operator Controls
 	//
@@ -197,15 +198,15 @@ public class Robot extends IterativeRobot
 		{
 			// practice settings
 			kVf	= 1.0 / 175.0;	// 1 / max velocity
-			kAf = 0.0037;
-			kBf = 0.0012;	// .0020
+			kAf = 0.0030;  // .0037
+			kBf = 0.0020;	// .0012
 			kDp = 0.0165;
 			kDd = 0.0006;
 			kBp = 0.0015;
 
 			kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-			kRAf = 0.00130;
-			kRBf = 0.00080;
+			kRAf = 0.00120;	// .0013
+			kRBf = 0.00080; // .00080
 			kRBp = 0.00150;
 			kRBd = 0.00000;
 		}
@@ -213,14 +214,14 @@ public class Robot extends IterativeRobot
 		{
 			// competition settings
 			kVf	= 1.0 / 175.0;	// 1 / max velocity
-			kAf = 0.0037;
-			kBf = 0.0012;	// .0020
+			kAf = 0.0030;
+			kBf = 0.0020;	// .0020
 			kDp = 0.0165;
 			kDd = 0.0006;
 			kBp = 0.0015;
 			
 			kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-			kRAf = 0.00130;
+			kRAf = 0.00095;
 			kRBf = 0.00080;
 			kRBp = 0.00150;
 			kRBd = 0.00000;
@@ -275,7 +276,7 @@ public class Robot extends IterativeRobot
 		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		climber2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
     	
-    	shifter.set(DoubleSolenoid.Value.kReverse);			// low gear
+    	shifter.set(DoubleSolenoid.Value.kForward);			// high gear
     	intakeSolenoid.set(DoubleSolenoid.Value.kReverse);	// intake down
     	gearWall.set(DoubleSolenoid.Value.kReverse);		// wall down
     	gearPushout.set(DoubleSolenoid.Value.kReverse);		// pushes back
@@ -289,8 +290,16 @@ public class Robot extends IterativeRobot
     	
     	// Init Vision Processing Loop
     	//
-    	cameraHigh = ImageUtils.getCamera(1,  "High");
-    	cameraLow = ImageUtils.getCamera(0,  "Low");    	
+    	if (practiceBot)
+    	{
+	    	cameraHigh = ImageUtils.getCamera(0,  "High");
+	    	cameraLow = ImageUtils.getCamera(1,  "Low");
+    	}
+    	else
+    	{
+	    	cameraHigh = ImageUtils.getCamera(1,  "High");
+	    	cameraLow = ImageUtils.getCamera(0,  "Low");
+    	}
     	
     	ImageUtils.setCamera(cameraLow);
 
@@ -304,7 +313,10 @@ public class Robot extends IterativeRobot
 	    			}
 	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
 	    			{
-	    				ImageUtils.processFrame(true, 0.15, 0.5, true, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    				ImageUtils.processFrame(true, 0.15, 0.6, true, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    			}
+	    			else
+	    			{
 	    			}
 	    		}
 	    	});
@@ -429,7 +441,24 @@ public class Robot extends IterativeRobot
 		{
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
-			this.myDrive.tankDrive(-power, -power, false);
+			this.myDrive.tankDrive(-power, power, false);
+		}
+		else if (this.testMode && testTrackTargetButton.isPressed())
+		{
+			if (!this.motionDone)
+			{
+				double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
+				SmartDashboard.putNumber("Test Drive Distance", dist);
+				double angle = ImageUtils.getPegRotationError(dist);
+				SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+				this.driveStraightBearing = this.getBearing();
+				driveController.rotate(angle);
+				this.motionDone = true;
+			}
+			else
+			{
+				SmartDashboard.putNumber("Auto-Rotate-Actual", this.getCurrentBearing() - this.driveStraightBearing);
+			}
 		}
 		else
 		{
@@ -487,7 +516,7 @@ public class Robot extends IterativeRobot
 			}
 		}
 		
-		if (shiftButton.isPressed()) //Toggle button
+		if (shiftButton.isPressed() || shiftButton2.isPressed())
 		{
 			if (shifter.get() == DoubleSolenoid.Value.kForward)
 			{
@@ -809,8 +838,8 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("Camera WB", whiteBalance);
 		
 		int hsvLowerHue = (int)SmartDashboard.getNumber("H Lower", 45.0);
-		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 75.0);
-		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 75.0);		
+		int hsvLowerSat = (int)SmartDashboard.getNumber("S Lower", 100.0);
+		int hsvLowerVal = (int)SmartDashboard.getNumber("V Lower", 100.0);		
 		if ((ImageUtils.hsvLowerBounds.val[0] != hsvLowerHue) || (ImageUtils.hsvLowerBounds.val[1] != hsvLowerSat) || (ImageUtils.hsvLowerBounds.val[2] != hsvLowerVal))
 		{
 			ImageUtils.hsvLowerBounds = new Scalar(hsvLowerHue, hsvLowerSat, hsvLowerVal, 0);
@@ -819,7 +848,7 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("S Lower", hsvLowerSat);
 		SmartDashboard.putNumber("V Lower", hsvLowerVal);
 		
-		int hsvUpperHue = (int)SmartDashboard.getNumber("H Upper", 75.0);
+		int hsvUpperHue = (int)SmartDashboard.getNumber("H Upper", 60.0);
 		int hsvUpperSat = (int)SmartDashboard.getNumber("S Upper", 255.0);
 		int hsvUpperVal = (int)SmartDashboard.getNumber("V Upper", 255.0);
 		if ((ImageUtils.hsvUpperBounds.val[0] != hsvUpperHue) || (ImageUtils.hsvUpperBounds.val[1] != hsvUpperSat) || (ImageUtils.hsvUpperBounds.val[2] != hsvUpperVal))

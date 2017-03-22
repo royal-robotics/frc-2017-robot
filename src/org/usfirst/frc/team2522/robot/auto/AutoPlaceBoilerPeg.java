@@ -3,6 +3,7 @@ package org.usfirst.frc.team2522.robot.auto;
 import org.usfirst.frc.team2522.robot.*;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 /**
@@ -33,15 +34,15 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 	public void Periodic(Robot robot) {
 		if (autoStep == 0) 
 		{
-			robot.setShooterPower(0.75);
-			if (AutonomousController.driveTo(robot, 72.0))		// practice 65
+//			robot.setShooterPower(0.75);
+			if (AutonomousController.driveTo(robot, 62.0))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 1)
 		{
-			double angle = -70;									// practice -60
+			double angle = -60;
 			
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
 			{
@@ -60,6 +61,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 			{
 				alignRotation = ImageUtils.getPegRotationError(75.0);
 			}
+SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 3)
@@ -84,11 +86,12 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				alignRotation = ImageUtils.getPegRotationError(30.0);
 			}
 			ImageUtils.setCamera(robot.cameraHigh);
+SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 6)
 		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
+			if (AutonomousController.rotateTo(robot, alignRotation, 200.0, 400.0))
 			{
 				autoStep++;
 			}
@@ -144,37 +147,37 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				autoStep++;
 			}
 		}
-		else if (autoStep == 12) 
-		{
-			if (AutonomousController.rotateTo(robot, -180, 300, 500))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 13) 
-		{
-			alignRotation = ImageUtils.getBoilerRotationError(120.0, "AutoImageStep" + autoStep + "_");
-			while(alignRotation == Double.NaN)
-			{
-				alignRotation = ImageUtils.getBoilerRotationError(120.0);
-			}
-			autoStep++;
-		}
-		else if (autoStep == 14)
-		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 15) 
-		{
-			if (AutonomousController.driveTo(robot, 91.0))
-			{
-				robot.setFeederPower(0.75);
-				autoStep++;
-			}
-		}
+//		else if (autoStep == 12) 
+//		{
+//			if (AutonomousController.rotateTo(robot, -180, 300, 500))
+//			{
+//				autoStep++;
+//			}
+//		}
+//		else if (autoStep == 13) 
+//		{
+//			alignRotation = ImageUtils.getBoilerRotationError(120.0, "AutoImageStep" + autoStep + "_");
+//			while(alignRotation == Double.NaN)
+//			{
+//				alignRotation = ImageUtils.getBoilerRotationError(120.0);
+//			}
+//			autoStep++;
+//		}
+//		else if (autoStep == 14)
+//		{
+//			if (AutonomousController.rotateTo(robot, alignRotation))
+//			{
+//				autoStep++;
+//			}
+//		}
+//		else if (autoStep == 15) 
+//		{
+//			if (AutonomousController.driveTo(robot, 91.0))
+//			{
+//				robot.setFeederPower(0.75);
+//				autoStep++;
+//			}
+//		}
 		else
 		{
 			robot.shifter.set(DoubleSolenoid.Value.kForward); // high gear

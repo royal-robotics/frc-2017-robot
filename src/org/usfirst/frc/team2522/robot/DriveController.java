@@ -343,8 +343,9 @@ public class DriveController extends Thread
 					
 					leftPower = power; 
 					rightPower = -power;
+System.out.println("p.bearing=" + p.bearing + "motionRotateAngle=" + motionRotateAngle);
 					
-					if ((p.bearing == motionRotateAngle) && (robot.getRotationVelocity() == 0.0))
+					if ((Math.abs(p.bearing - motionRotateAngle) < .05) && (Math.abs(robot.getRotationVelocity()) <= 0.05))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				

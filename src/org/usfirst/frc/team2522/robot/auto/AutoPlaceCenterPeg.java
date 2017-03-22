@@ -3,6 +3,7 @@ package org.usfirst.frc.team2522.robot.auto;
 import org.usfirst.frc.team2522.robot.*;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class AutoPlaceCenterPeg extends AutoRoutine
 {
@@ -43,6 +44,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			{
 				alignRotation = ImageUtils.getPegRotationError(60.0);
 			}
+	SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 2)
@@ -62,11 +64,12 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		else if (autoStep == 4)
 		{
 			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "AutoImageStep" + autoStep + "_");
+			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
-				alignRotation = ImageUtils.getPegRotationError(60.0);
+				alignRotation = ImageUtils.getPegRotationError(30.0);
 			}
+SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 5)

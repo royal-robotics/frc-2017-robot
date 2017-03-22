@@ -32,14 +32,14 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 	public void Periodic(Robot robot) {
 		if (autoStep == 0) 
 		{
-			if (AutonomousController.driveTo(robot, 78.0))	// practice 72
+			if (AutonomousController.driveTo(robot, 72.0))
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 1)
 		{
-			double angle = 65;							// practice 60
+			double angle = 60;
 			
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
 			{
@@ -58,7 +58,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 			{
 				alignRotation = ImageUtils.getPegRotationError(75.0);
 			}
-			SmartDashboard.putNumber("Align Rotation", alignRotation);
+SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 3)
@@ -82,6 +82,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 			{
 				alignRotation = ImageUtils.getPegRotationError(30.0);
 			}
+SmartDashboard.putNumber("Align Rotation", alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 6)
