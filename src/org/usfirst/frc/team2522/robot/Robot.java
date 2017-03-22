@@ -52,34 +52,21 @@ public class Robot extends IterativeRobot
 	
 	public DriveController driveController = null;
 	
-	public boolean testMode = false;
+	public boolean testMode = true;
+	public boolean practiceBot = true;
 	
-	public final double kVf	= 1.0 / 175.0;	// 1 / max velocity
-	public final double kAf = 0.0037;
-	public final double kBf = 0.0012;	// .0020
-	public final double kDp = 0.0165;
-	public final double kDd = 0.0006;
-//	public final double kBp = 0.0015;
+	public double kVf	= 1.0 / 175.0;	// 1 / max velocity
+	public double kAf = 0.0037;
+	public double kBf = 0.0012;	// .0020
+	public double kDp = 0.0165;
+	public double kDd = 0.0006;
+	public double kBp = 0.0015;
 
-
-	// competition robot
-//	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-//	public final double kRAf = 0.00090; //0.00095;
-//	public final double kRBf = 0.00070; //0.00035
-//	public final double kRBp = 0.00150; //0.00280
-//	public final double kRBd = 0.00000; //0.00010
-	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-	public final double kRAf = 0.00130;
-	public final double kRBf = 0.00080;
-	public final double kRBp = 0.00150;
-	public final double kRBd = 0.00000; //0.00010
-
-	// practice robot
-//	public final double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
-//	public final double kRAf = 0.00130;
-//	public final double kRBf = 0.00080;
-//	public final double kRBp = 0.00150;
-//	public final double kRBd = 0.00000; //0.00010
+	public double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+	public double kRAf = 0.00130;
+	public double kRBf = 0.00080;
+	public double kRBp = 0.00150;
+	public double kRBd = 0.00000; //0.00010
 	
 	public double lastTime = 0.0;
 	public double lastBearing = 0.0;
@@ -150,15 +137,14 @@ public class Robot extends IterativeRobot
 	// Driver Controls
 	//
 	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
-	
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
 	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
+	Button testDrivePowerButton = new Button(leftStick, 6, ButtonType.Hold);
 	Button motionRecordButton = new Button(leftStick, 7, ButtonType.Hold);
 	Button showMaskButton  = new Button(leftStick, 8, ButtonType.Toggle);
-	Button showTargetsButton = new Button(leftStick, 9, ButtonType.Toggle);
-	
-	Button testDriveDistanceButton = new Button(leftStick, 11, ButtonType.Hold);
+	Button showTargetsButton = new Button(leftStick, 9, ButtonType.Toggle);	
 	Button testDriveRotateButton = new Button(leftStick, 10, ButtonType.Hold);
+	Button testDriveDistanceButton = new Button(leftStick, 11, ButtonType.Hold);
 	
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
@@ -206,7 +192,40 @@ public class Robot extends IterativeRobot
 	
 		
 	public void robotInit()
-	{		
+	{
+		if (practiceBot)
+		{
+			// practice settings
+			kVf	= 1.0 / 175.0;	// 1 / max velocity
+			kAf = 0.0037;
+			kBf = 0.0012;	// .0020
+			kDp = 0.0165;
+			kDd = 0.0006;
+			kBp = 0.0015;
+
+			kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+			kRAf = 0.00130;
+			kRBf = 0.00080;
+			kRBp = 0.00150;
+			kRBd = 0.00000;
+		}
+		else
+		{
+			// competition settings
+			kVf	= 1.0 / 175.0;	// 1 / max velocity
+			kAf = 0.0037;
+			kBf = 0.0012;	// .0020
+			kDp = 0.0165;
+			kDd = 0.0006;
+			kBp = 0.0015;
+			
+			kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
+			kRAf = 0.00130;
+			kRBf = 0.00080;
+			kRBp = 0.00150;
+			kRBd = 0.00000;
+		}
+		
 		// Init Robot Timer
 		//
 		AutonomousController.Initialize(this);
@@ -239,8 +258,8 @@ public class Robot extends IterativeRobot
 		
 		unjammer.setSafetyEnabled(false);
 		
-		wheelDrive = true;
-		SmartDashboard.putBoolean("wheelDrive", true);
+		wheelDrive = false;
+		SmartDashboard.putBoolean("wheelDrive", false);
 
 		try 
 		{
@@ -277,20 +296,20 @@ public class Robot extends IterativeRobot
 
 //    	if (this.testMode)
 //    	{
-//	    	visionThread = new Thread(() -> {
-//	    		while (!Thread.interrupted()) {
-//	    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
-//	    			{
-//	    				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-//	    			}
-//	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
-//	    			{
-//	    				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-//	    			}
-//	    		}
-//	    	});
-//    	
-//			visionThread.start();
+	    	visionThread = new Thread(() -> {
+	    		while (!Thread.interrupted()) {
+	    			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
+	    			{
+	    				ImageUtils.processFrame(false, 2.0, 3.0, true, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    			}
+	    			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
+	    			{
+	    				ImageUtils.processFrame(true, 0.15, 0.5, true, showImageBlobs, showImageTargets, takeImageButton.isPressed());
+	    			}
+	    		}
+	    	});
+    	
+			visionThread.start();
 //    	}
 		
 		driveController = new DriveController(this, 200);
@@ -302,48 +321,35 @@ public class Robot extends IterativeRobot
 	 */
 	public void robotPeriodic()
 	{
-		if (this.testMode)
+		if (motionRecordButton.isPressed())
 		{
-			if (motionRecordButton.isPressed())
+			this.recordMotion = true;
+		}
+		else
+		{
+			this.recordMotion = false;
+		}
+	
+		if (switchCameras.isPressed())
+		{
+			if ((ImageUtils.camera == cameraLow) && (cameraHigh != null))
 			{
-				this.recordMotion = true;
+				ImageUtils.setCamera(cameraHigh);
 			}
 			else
 			{
-				this.recordMotion = false;
+				ImageUtils.setCamera(cameraLow);
 			}
-		
-			if (switchCameras.isPressed())
-			{
-				if ((ImageUtils.camera == cameraLow) && (cameraHigh != null))
-				{
-					ImageUtils.setCamera(cameraHigh);
-				}
-				else
-				{
-					ImageUtils.setCamera(cameraLow);
-				}
-			}
-		
-			if (showMaskButton.isPressed())
-			{
-				showImageBlobs = ! showImageBlobs;
-			}
-			
-			if (showTargetsButton.isPressed())
-			{
-				showImageTargets = ! showImageTargets;
-			}
+		}
 	
+		if (showMaskButton.isPressed())
+		{
+			showImageBlobs = ! showImageBlobs;
+		}
 		
-			if ((cameraLow != null) && (ImageUtils.camera == cameraLow))
-			{
-				ImageUtils.processFrame(false, 2.0, 3.0, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-			}
-			else if ((cameraHigh != null) && (ImageUtils.camera == cameraHigh))
-			{
-				ImageUtils.processFrame(true, 0.15, 0.5, this.testMode, showImageBlobs, showImageTargets, takeImageButton.isPressed());
-			}
+		if (showTargetsButton.isPressed())
+		{
+			showImageTargets = ! showImageTargets;
 		}
     			
 		writeDashboard();		
@@ -388,10 +394,6 @@ public class Robot extends IterativeRobot
 	 */
 	public void teleopInit()
 	{
-		if (! this.testMode)
-		{
-			ImageUtils.setCamera(null);
-		}
 		this.resetMotion();
 	}
 	
@@ -411,8 +413,6 @@ public class Robot extends IterativeRobot
 				this.motionDone = true;
 			}
 
-			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
-			SmartDashboard.putNumber("Test Drive Power", power);
 		}
 		else if (this.testMode && testDriveRotateButton.isPressed())
 		{
@@ -424,6 +424,12 @@ public class Robot extends IterativeRobot
 				driveController.rotate(dist);
 				this.motionDone = true;
 			}
+		}
+		else if (this.testMode && testDrivePowerButton.isPressed())
+		{
+			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
+			SmartDashboard.putNumber("Test Drive Power", power);
+			this.myDrive.tankDrive(-power, -power, false);
 		}
 		else
 		{

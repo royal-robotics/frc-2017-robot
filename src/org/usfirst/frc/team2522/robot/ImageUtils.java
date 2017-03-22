@@ -98,13 +98,32 @@ public class ImageUtils
 			}
 			else
 			{
-				rectangles = ImageUtils.getRectangles(src_image, minAspectRatio, maxAspectRatio);
-
-				if (saveImage)
+				Rect target = null;
+				rectangles = ImageUtils.getRectangles(src_image, 4, 4, minAspectRatio, maxAspectRatio);
+				
+				if (highCamera)
 				{
-					ImageUtils.saveImage(src_image, rectangles);
+					if (saveImage)
+					{
+						target = getBoilerTargetRectangle(src_image, "ImageRects");
+					}
+					else
+					{
+						target = getBoilerTargetRectangle(src_image);
+					}
 				}
-								
+				else
+				{
+					if (saveImage)
+					{
+						target = getPegTargetRectangle(src_image, "ImageRects");
+					}
+					else
+					{
+						target = getPegTargetRectangle(src_image);
+					}
+				}
+
 				if (showImageBlobs)
 				{
 					ImageUtils.cameraStream.putFrame(ImageUtils.getMask(src_image));
@@ -123,16 +142,19 @@ public class ImageUtils
 						}
 	
 						SmartDashboard.putString("Image-Rects", s);
+
+						double targetCenter = target.x + ((double)target.width / 2.0); 
+						double targetError = targetCenter - ((double)imageWidth / 2.0);
+						SmartDashboard.putNumber("Target-Error", targetError);
 						
 						if (highCamera)
 						{
-							SmartDashboard.putNumber("Target-Dist", getBoilerTargetDistance(rectangles));
-							SmartDashboard.putNumber("Target-Error", getBoilerTargetPixelError(rectangles));
+							SmartDashboard.putNumber("Target-Dist", getBoilerTargetDistance(target));
 						}
 						else
 						{
-							SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(rectangles));
-							SmartDashboard.putNumber("Target-Error", getPegTargetPixelError(rectangles));
+							SmartDashboard.putNumber("Target-Dist", getPegTargetDistance(target));
+							
 						}
 					}
 					
@@ -155,31 +177,25 @@ public class ImageUtils
 		return msk_image;
 	}
 
-	public static List<Rect> getRectangles(Mat src_image, double minAspectRatio, double maxAspectRation)
+	public static List<Rect> getRectangles(Mat srcImg, int minHeight, int minWidth, double minAspectRatio, double maxAspectRation)
 	{
-		return getRectangles(src_image, minAspectRatio, maxAspectRation, null);
+		return getRectangles(srcImg, minHeight, minWidth, minAspectRatio, maxAspectRation, null);
 	}
 	
-	public static List<Rect> getRectangles(Mat src_image, double minAspectRatio, double maxAspectRation, String imgName)
+	public static List<Rect> getRectangles(Mat srcImg, int minHeight, int minWidth, double minAspectRatio, double maxAspectRation, String imgName)
 	{
 		ArrayList<Rect> results = new ArrayList<Rect>();
 		
-		msk_image = getMask(src_image);
-		
-		if (imgName != null)
-		{
-			
-			Imgcodecs.imwrite("/home/lvuser/" + imgName+"_msk.png", msk_image);
-		}
+		Mat mask = getMask(srcImg);
 		
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Imgproc.findContours(msk_image, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 		
 		for(int i = 0; i < contours.size(); i++)
 		{
 			Rect r = Imgproc.boundingRect(contours.get(i));
 
-			if ((r.width > 4) && (r.height > 4))
+			if ((r.width > minHeight) && (r.height > minWidth))
 			{
 				double rAspectRation = (double)r.height / (double)r.width;
 				if ((rAspectRation >= minAspectRatio) && (rAspectRation <= maxAspectRation))
@@ -192,13 +208,16 @@ public class ImageUtils
 		return results;
 	}
 	
-	public static double getPegTargetDistance(List<Rect> rectangles)
+	
+	
+	
+	public static double getPegTargetDistance(Rect target)
 	{
 		double result = Double.NaN;
 		
-		if (rectangles.size() == 2)
+		if (target != null)
 		{
-			result = Math.max(rectangles.get(0).height, rectangles.get(1).height) * -0.7869 + 103.7; 
+			result = target.height * -0.7869 + 103.7; 	// TODO: redo regression on width
 		}
 		
 		return result;
@@ -222,127 +241,222 @@ public class ImageUtils
 			}
 			else
 			{
-				if (imgName != null)
+				Rect r = getPegTargetRectangle(src_image, imgName);
+				
+				if (r != null)
 				{
-					Imgcodecs.imwrite("/home/lvuser/" + imgName+"_src.png", src_image);
-				}
-				
-				List<Rect> rectangles = getRectangles(src_image, 2.0, 3.0, imgName);
-				
-				if (imgName != null)
-				{
-					for(int i = 0; i < rectangles.size(); i++)
-					{
-						Rect r = rectangles.get(i);
-						Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(255, 0, 0), 3);
-					}
-					Imgcodecs.imwrite("/home/lvuser/" + imgName+"_pot.png", src_image);
-				}
-				
-				List<List<Rect>> sets = new ArrayList<List<Rect>>();
-				
-				while(rectangles.size() > 1)
-				{
-					List<Rect> sameHeightRects = new ArrayList<Rect>();
-					List<Rect> remainingRects = new ArrayList<Rect>();
-					
-					for(int i = 0; i < rectangles.size(); i++)
-					{
-						if (sameHeightRects.size() == 0)
-						{
-							sameHeightRects.add(rectangles.get(i));
-						}
-						else
-						{
-							if ((Math.abs(sameHeightRects.get(0).y - rectangles.get(i).y) <= 4)
-							 && (Math.abs(sameHeightRects.get(0).height - rectangles.get(i).height) <= 4))
-							{
-								sameHeightRects.add(rectangles.get(i));
-							}
-							else
-							{
-								remainingRects.add(rectangles.get(i));
-							}
-						}
-					}
-					
-					if (sameHeightRects.size() == 2)
-					{
-						sets.add(sameHeightRects);
-					}
-					
-					rectangles = remainingRects;
-				}
-				
-				rectangles = new ArrayList<Rect>();
-				int maxArea = 0;
-				for(int i = 0; i < sets.size(); i++)
-				{
-					Rect r1 = sets.get(i).get(0);
-					Rect r2 = sets.get(i).get(1);
-					int area = (r1.height * r1.width) + (r2.height * r2.width);
-					
-					if (rectangles.size() == 0)
-					{
-						rectangles = sets.get(i);
-						maxArea = area;
-					}
-					else if (area > maxArea)
-					{
-						rectangles = sets.get(i);
-						maxArea = area;
-					}
-				}
-				
-				if (rectangles.size() == 2)
-				{
-					if (imgName != null)
-					{
-						for(int i = 0; i < rectangles.size(); i++)
-						{
-							Rect r = rectangles.get(i);
-							Imgproc.rectangle(src_image, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
-						}
-						Imgcodecs.imwrite("/home/lvuser/" + imgName+"_trg.png", src_image);
-					}
+					double targetCenter = r.x + ((double)r.width / 2.0); 
+					double pe = targetCenter - ((double)imageWidth / 2.0);
 
-					double pixelWidth = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width) - Math.min(rectangles.get(0).x, rectangles.get(1).x);
-					double pe = getPegTargetPixelError(rectangles);
-
-					if (pe != Double.NaN)
-					{
-						double a = range;
-						double b = pe * 10.5 / pixelWidth;
-						
-//						b = b - 1.0; // adjustment for practice bot camera placement.
+					double a = range;
+					double b = pe * 10.5 / (double)r.width;
 SmartDashboard.putNumber("A:", a);
 SmartDashboard.putNumber("B:", b);
-						result = Math.toDegrees(Math.atan(b / a));
-					}
+		
+//					b = b - 1.0; // adjustment for practice bot camera placement.
+					result = Math.toDegrees(Math.atan(b / a));
 				}
 			}
 		}
 		
 		return result;
 	}
-	
-	public static double getPegTargetPixelError(List<Rect> rectangles)
+
+	/**
+	 * 
+	 * @param srcImg
+	 * @return
+	 */
+	public static Rect getPegTargetRectangle(Mat srcImg)
 	{
-		double result = Double.NaN;
+		return getPegTargetRectangle(srcImg, null);
+	}	
+	
+	/**
+	 * 
+	 * @param srcImg
+	 * @param imgName
+	 * @return
+	 */
+	public static Rect getPegTargetRectangle(Mat srcImg, String imgName)
+	{
+		Rect result = null;
 		
-		if (rectangles.size() == 2)
+		List<Rect> rectangles = getRectangles(srcImg, 4, 4, 2.0, 3.0, imgName);
+				
+		List<List<Rect>> sets = new ArrayList<List<Rect>>();
+		
+		while(rectangles.size() > 1)
 		{
-			int left = Math.min(rectangles.get(0).x, rectangles.get(1).x);
-			int right = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width);
-			int center = left + ((right - left) / 2);
+			List<Rect> sameHeightRects = new ArrayList<Rect>();
+			List<Rect> remainingRects = new ArrayList<Rect>();
 			
-			result = center - (imageWidth / 2);
+			for(int i = 0; i < rectangles.size(); i++)
+			{
+				if (sameHeightRects.size() == 0)
+				{
+					sameHeightRects.add(rectangles.get(i));
+				}
+				else
+				{
+					if ((Math.abs(sameHeightRects.get(0).y - rectangles.get(i).y) <= 4)
+					 && (Math.abs(sameHeightRects.get(0).height - rectangles.get(i).height) <= 4))
+					{
+						sameHeightRects.add(rectangles.get(i));
+					}
+					else
+					{
+						remainingRects.add(rectangles.get(i));
+					}
+				}
+			}
+			
+			if (sameHeightRects.size() == 2)
+			{
+				sets.add(sameHeightRects);
+			}
+			
+			rectangles = remainingRects;
+		}
+		
+		List<Rect> finalRects = new ArrayList<Rect>();
+		int maxArea = 0;
+		for(int i = 0; i < sets.size(); i++)
+		{
+			Rect r1 = sets.get(i).get(0);
+			Rect r2 = sets.get(i).get(1);
+			int area = (r1.height * r1.width) + (r2.height * r2.width);
+			
+			if (finalRects.size() == 0)
+			{
+				finalRects = sets.get(i);
+				maxArea = area;
+			}
+			else if (area > maxArea)
+			{
+				finalRects = sets.get(i);
+				maxArea = area;
+			}
+		}
+		
+		if (finalRects.size() == 2)
+		{
+			Rect r1 = rectangles.get(0);
+			Rect r2 = rectangles.get(1);
+			int x = Math.min(r1.x, r2.x);
+			int y = Math.min(r1.height, r2.height);
+			int width = Math.max((r1.x + r1.width) - x, (r2.x + r2.width) - x);
+			int height = Math.max((r1.y + r1.height) - y, (r2.y + r2.height) - y);
+					
+			result = new Rect(x, y, width, height);
+		}
+
+		if (imgName != null)
+		{
+			saveImage(imgName, srcImg, rectangles, result);
 		}
 		
 		return result;
 	}
+
+	/**
+	 * 
+	 * @param srcImg
+	 * @return
+	 */
+	public static Rect getBoilerTargetRectangle(Mat srcImg)
+	{
+		return getBoilerTargetRectangle(srcImg, null);
+	}	
 	
-	public static double getBoilerTargetDistance(List<Rect> rectangles)
+	/**
+	 * 
+	 * @param srcImg
+	 * @param imgName
+	 * @return
+	 */
+	public static Rect getBoilerTargetRectangle(Mat srcImg, String imgName)
+	{
+		Rect result = null;
+		
+		List<Rect> rectangles = getRectangles(srcImg, 4, 4, 0.15, 0.5, imgName);
+				
+		List<List<Rect>> sets = new ArrayList<List<Rect>>();
+		
+		while(rectangles.size() > 1)
+		{
+			List<Rect> sameWidthRects = new ArrayList<Rect>();
+			List<Rect> remainingRects = new ArrayList<Rect>();
+			
+			for(int i = 0; i < rectangles.size(); i++)
+			{
+				if (sameWidthRects.size() == 0)
+				{
+					sameWidthRects.add(rectangles.get(i));
+				}
+				else
+				{
+					if ((Math.abs(sameWidthRects.get(0).x - rectangles.get(i).x) <= 4)
+					 && (Math.abs(sameWidthRects.get(0).width - rectangles.get(i).width) <= 4))
+					{
+						sameWidthRects.add(rectangles.get(i));
+					}
+					else
+					{
+						remainingRects.add(rectangles.get(i));
+					}
+				}
+			}
+			
+			if (sameWidthRects.size() == 2)
+			{
+				sets.add(sameWidthRects);
+			}
+			
+			rectangles = remainingRects;
+		}
+		
+		List<Rect> finalRects = new ArrayList<Rect>();
+		int maxArea = 0;
+		for(int i = 0; i < sets.size(); i++)
+		{
+			Rect r1 = sets.get(i).get(0);
+			Rect r2 = sets.get(i).get(1);
+			int area = (r1.height * r1.width) + (r2.height * r2.width);
+			
+			if (finalRects.size() == 0)
+			{
+				finalRects = sets.get(i);
+				maxArea = area;
+			}
+			else if (area > maxArea)
+			{
+				finalRects = sets.get(i);
+				maxArea = area;
+			}
+		}
+		
+		if (finalRects.size() == 2)
+		{
+			Rect r1 = rectangles.get(0);
+			Rect r2 = rectangles.get(1);
+			int x = Math.min(r1.x, r2.x);
+			int y = Math.min(r1.height, r2.height);
+			int width = Math.max((r1.x + r1.width) - x, (r2.x + r2.width) - x);
+			int height = Math.max((r1.y + r1.height) - y, (r2.y + r2.height) - y);
+					
+			result = new Rect(x, y, width, height);
+		}
+
+		if (imgName != null)
+		{
+			saveImage(imgName, srcImg, rectangles, result);
+		}
+		
+		return result;
+	}
+		
+	public static double getBoilerTargetDistance(Rect target)
 	{
 		double result = Double.NaN;
 		
@@ -351,7 +465,23 @@ SmartDashboard.putNumber("B:", b);
 		return result;
 	}
 
+	/**
+	 * 
+	 * @param range
+	 * @return
+	 */
 	public static double getBoilerRotationError(double range)
+	{
+		return getBoilerRotationError(range, null);
+	}
+	
+	/**
+	 * 
+	 * @param range
+	 * @param imgName
+	 * @return
+	 */
+	public static double getBoilerRotationError(double range, String imgName)
 	{
 		double result = Double.NaN;
 		
@@ -364,75 +494,20 @@ SmartDashboard.putNumber("B:", b);
 			}
 			else
 			{
-				List<Rect> rectangles = getRectangles(src_image, 0.15, 0.5);
+				Rect r = getBoilerTargetRectangle(src_image, imgName);
 				
-				List<List<Rect>> sets = new ArrayList<List<Rect>>();
-				
-				while(rectangles.size() > 1)
+				if (r != null)
 				{
-					List<Rect> sameWidthtRects = new ArrayList<Rect>();
-					List<Rect> remainingRects = new ArrayList<Rect>();
-					
-					for(int i = 0; i < rectangles.size(); i++)
-					{
-						if (sameWidthtRects.size() == 0)
-						{
-							sameWidthtRects.add(rectangles.get(i));
-						}
-						else
-						{
-							if ((Math.abs(sameWidthtRects.get(0).x - rectangles.get(i).x) <= 5)
-							 && (Math.abs(sameWidthtRects.get(0).width - rectangles.get(i).width) <= 5))
-							{
-								sameWidthtRects.add(rectangles.get(i));
-							}
-							else
-							{
-								remainingRects.add(rectangles.get(i));
-							}
-						}
-					}
-					
-					if (sameWidthtRects.size() == 2)
-					{
-						sets.add(sameWidthtRects);
-					}
-					
-					rectangles = remainingRects;
-				}
-				
-				rectangles = new ArrayList<Rect>();
-				int maxArea = 0;
-				for(int i = 0; i < sets.size(); i++)
-				{
-					Rect r1 = sets.get(i).get(0);
-					Rect r2 = sets.get(i).get(1);
-					int area = (r1.height * r1.width) + (r2.height * r2.width);
-					
-					if (rectangles.size() == 0)
-					{
-						rectangles = sets.get(i);
-						maxArea = area;
-					}
-					else if (area > maxArea)
-					{
-						rectangles = sets.get(i);
-						maxArea = area;
-					}
-				}
-				
-				if (rectangles.size() == 2)
-				{
-					double pixelHeight = Math.max(rectangles.get(0).y + rectangles.get(0).height, rectangles.get(1).y + rectangles.get(1).height) - Math.min(rectangles.get(0).y, rectangles.get(1).y);
-					double pe = getPegTargetPixelError(rectangles);
+					double targetCenter = r.x + ((double)r.width / 2.0); 
+					double pe = targetCenter - ((double)imageWidth / 2.0);
 
-					if (pe != Double.NaN)
-					{
-						double a = range;
-						double b = pe * 10.0 / pixelHeight;
-						
-						result = Math.toDegrees(Math.atan(b / a));
-					}
+					double a = range;
+					double b = pe * 10.5 / (double)r.width;
+SmartDashboard.putNumber("A:", a);
+SmartDashboard.putNumber("B:", b);
+		
+//					b = b - 1.0; // adjustment for practice bot camera placement.
+					result = Math.toDegrees(Math.atan(b / a));
 				}
 			}
 		}
@@ -440,32 +515,16 @@ SmartDashboard.putNumber("B:", b);
 		return result;
 	}
 	
-	public static double getBoilerTargetPixelError(List<Rect> rectangles)
-	{
-		double result = Double.NaN;
-
-		if (rectangles.size() == 2)
-		{
-			int left = Math.min(rectangles.get(0).x, rectangles.get(1).x);
-			int right = Math.max(rectangles.get(0).x + rectangles.get(0).width, rectangles.get(1).x + rectangles.get(1).width);
-			int center = left + ((right - left) / 2);
-			
-			result = center - (imageWidth / 2);
-		}
-		
-		return result;
-	}
-	
-	public static void saveImage(Mat src, List<Rect> rectangles)
+	public static void saveImage(String name, Mat src, List<Rect> rectangles, Rect target)
 	{
 		PrintStream ps = null;
 		
 		try
 		{
-			File f = new File("/home/lvuser/ImageRects0.txt");
+			File f = new File("/home/lvuser/" + name + "0.txt");
 			for(int i = 0; f.exists(); i++)
 			{
-				f = new File("/home/lvuser/ImageRects" + i + ".txt");
+				f = new File("/home/lvuser/" + name + i + ".txt");
 			}
 
 			System.out.println("Image Rects File Created: " + f.getName());
@@ -480,8 +539,14 @@ SmartDashboard.putNumber("B:", b);
 				for(int index = 0; index < rectangles.size(); index++)
 				{
 					Rect r = rectangles.get(index);
-					Imgproc.rectangle(tmp, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(0, 0, 255), 3);
+					Imgproc.rectangle(tmp, new Point(r.x, r.y), new Point(r.x+r.width, r.y+r.height), new Scalar(255, 0, 0), 3);
 				}
+				
+				if (target != null)
+				{
+					Imgproc.rectangle(tmp, new Point(target.x, target.y), new Point(target.x+target.width, target.y+target.height), new Scalar(0, 0, 255), 3);
+				}
+				
 				Imgcodecs.imwrite("/home/lvuser/" + f.getName().replaceAll(".txt", "_trg.png"), tmp);
 			}
 			catch(Exception e)

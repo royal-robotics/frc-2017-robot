@@ -53,7 +53,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 		}
 		else if (autoStep == 2) 
 		{
-			alignRotation = ImageUtils.getPegRotationError(75.0, "AutoImage" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(75.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(75.0);
@@ -77,7 +77,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 		}
 		else if (autoStep == 5) 
 		{
-			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImage" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(30.0);

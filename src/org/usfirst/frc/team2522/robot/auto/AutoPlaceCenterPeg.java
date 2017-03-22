@@ -38,7 +38,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		else if (autoStep == 1)
 		{
 			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "/home/lvuser/ImageStep" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(60.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(60.0);
@@ -62,7 +62,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		else if (autoStep == 4)
 		{
 			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "/home/lvuser/AutoImage" + autoStep);
+			alignRotation = ImageUtils.getPegRotationError(60.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
 				alignRotation = ImageUtils.getPegRotationError(60.0);

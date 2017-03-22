@@ -42,16 +42,6 @@ public final class AutonomousController
 	 */
 	public static DriverStation.Alliance autoAlliance;
 	
-	/**
-	 * 
-	 */	
-	public enum FieldPosition {
-		Boiler, Center, Outside
-	}
-	
-	public enum AutoMode {
-		PlaceBoilerPeg, PlaceCenterPeg, PlaceOutsidePeg
-	}
 	
 	@SuppressWarnings("serial")
 	private static final Map<Integer, Map<Integer, AutoRoutine>> autoFieldPosMap = new HashMap<Integer, Map<Integer, AutoRoutine>>() {{
