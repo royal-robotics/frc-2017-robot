@@ -449,8 +449,10 @@ public class Robot extends IterativeRobot
 			{
 				double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 				SmartDashboard.putNumber("Test Drive Distance", dist);
+				
 				double angle = ImageUtils.getPegRotationError(dist);
 				SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+				
 				this.driveStraightBearing = this.getBearing();
 				driveController.rotate(angle);
 				this.motionDone = true;

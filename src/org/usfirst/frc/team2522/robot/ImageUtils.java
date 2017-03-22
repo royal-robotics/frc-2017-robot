@@ -253,12 +253,20 @@ public class ImageUtils
 					double pe = targetCenter - ((double)imageWidth / 2.0);
 
 					double a = range;
-					double b = pe * 10.5 / (double)r.width;
-SmartDashboard.putNumber("A:", a);
-SmartDashboard.putNumber("B:", b);
+					double b = pe * 10.25 / (double)r.width;
 		
 //					b = b - 1.0; // adjustment for practice bot camera placement.
+					
 					result = Math.toDegrees(Math.atan(b / a));
+					
+System.out.println("getPegRotationError=" + result);					
+System.out.println("  A=" + a);					
+System.out.println("  B=" + b);					
+System.out.println("  ATAN(B/A)=" + Math.atan(b / a));					
+				}
+				else
+				{
+System.out.println("getPegRotationError(): No target found.");					
 				}
 			}
 		}
@@ -506,12 +514,16 @@ SmartDashboard.putNumber("B:", b);
 					double pe = targetCenter - ((double)imageWidth / 2.0);
 
 					double a = range;
-					double b = pe * 10.5 / (double)r.width;
-SmartDashboard.putNumber("A:", a);
-SmartDashboard.putNumber("B:", b);
+					double b = pe * 15.0 / (double)r.width;
 		
 //					b = b - 1.0; // adjustment for practice bot camera placement.
+					
 					result = Math.toDegrees(Math.atan(b / a));
+					
+System.out.println("getBoilerRotationError=" + result);					
+System.out.println("  A=" + a);					
+System.out.println("  B=" + b);					
+System.out.println("  ATAN(B/A)=" + Math.atan(b / a));					
 				}
 			}
 		}

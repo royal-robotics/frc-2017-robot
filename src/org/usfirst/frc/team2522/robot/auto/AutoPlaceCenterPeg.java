@@ -44,7 +44,8 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 			{
 				alignRotation = ImageUtils.getPegRotationError(60.0);
 			}
-	SmartDashboard.putNumber("Align Rotation", alignRotation);
+SmartDashboard.putNumber("Align Rotation", alignRotation);
+System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 2)
@@ -70,6 +71,7 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 				alignRotation = ImageUtils.getPegRotationError(30.0);
 			}
 SmartDashboard.putNumber("Align Rotation", alignRotation);
+System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 5)

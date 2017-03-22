@@ -169,25 +169,34 @@ public final class AutonomousController
 	
 	public static boolean rotateTo(Robot robot, double angle, double maxVel, double maxAcc)
 	{
-		if (!autoIsDriving)
+		if (Math.abs(angle) < 1.0)
 		{
-			SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
-			autoDriveStartValue = robot.getCurrentBearing();
+			if (!autoIsDriving)
+			{
+				SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+	System.out.println("AutonomousController.rotateTo(): Requested Rotation=" + angle);			
+				autoDriveStartValue = robot.getCurrentBearing();
+				
+				robot.driveController.rotate(angle, maxVel, maxAcc);
+				autoIsDriving = true;
+			}
+			else
+			{
+				autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+			}
 			
-			robot.driveController.rotate(angle, maxVel, maxAcc);
-			autoIsDriving = true;
+			if (!autoIsDriving)
+			{
+				SmartDashboard.putNumber("Auto-Rotate-Actual", robot.getCurrentBearing() - autoDriveStartValue);
+	System.out.println("AutonomousController.rotateTo(): Actual Rotation=" + angle);			
+			}
+			
+			return !autoIsDriving;
 		}
 		else
 		{
-			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+			return true;
 		}
-		
-		if (!autoIsDriving)
-		{
-			SmartDashboard.putNumber("Auto-Rotate-Actual", robot.getCurrentBearing() - autoDriveStartValue);
-		}
-		
-		return !autoIsDriving;
 	}
 
 	public static boolean driveTo(Robot robot, double distance)
@@ -197,24 +206,31 @@ public final class AutonomousController
 	
 	public static boolean driveTo(Robot robot, double distance, double maxVel, double maxAcc)
 	{
-		if (!autoIsDriving)
+		if (Math.abs(distance) < 0.5)
 		{
-			autoDriveStartValue = robot.leftDriveEncoder.getDistance();
-
-			robot.driveController.drive(distance, maxVel, maxAcc);
-			autoIsDriving = true;
+			if (!autoIsDriving)
+			{
+				autoDriveStartValue = robot.leftDriveEncoder.getDistance();
+	
+				robot.driveController.drive(distance, maxVel, maxAcc);
+				autoIsDriving = true;
+			}
+			else
+			{
+				autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+			}
+			
+			if (!autoIsDriving)
+			{
+				SmartDashboard.putNumber("Auto-Drive", robot.leftDriveEncoder.getDistance() - autoDriveStartValue);
+			}
+			
+			return !autoIsDriving;
 		}
 		else
 		{
-			autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+			return true;
 		}
-		
-		if (!autoIsDriving)
-		{
-			SmartDashboard.putNumber("Auto-Drive", robot.leftDriveEncoder.getDistance() - autoDriveStartValue);
-		}
-		
-		return !autoIsDriving;
 	}
 	
 }

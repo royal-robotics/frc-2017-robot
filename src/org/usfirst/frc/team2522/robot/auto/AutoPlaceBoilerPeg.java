@@ -62,6 +62,7 @@ public class AutoPlaceBoilerPeg extends AutoRoutine
 				alignRotation = ImageUtils.getPegRotationError(75.0);
 			}
 SmartDashboard.putNumber("Align Rotation", alignRotation);
+System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 3)
@@ -87,6 +88,7 @@ SmartDashboard.putNumber("Align Rotation", alignRotation);
 			}
 			ImageUtils.setCamera(robot.cameraHigh);
 SmartDashboard.putNumber("Align Rotation", alignRotation);
+System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
 			autoStep++;
 		}
 		else if (autoStep == 6)
