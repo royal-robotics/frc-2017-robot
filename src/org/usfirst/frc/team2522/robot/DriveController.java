@@ -50,6 +50,7 @@ public class DriveController extends Thread
 	
 	private void startMotion(double distance, double maxVel, double maxAcc)
 	{
+		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
 		motionStartBearing = robot.getBearing();
 		motionStartLeftDistance = robot.leftDriveEncoder.getDistance();
 		motionStartRightDistance = robot.rightDriveEncoder.getDistance();
@@ -83,7 +84,6 @@ public class DriveController extends Thread
 		startMotion(distance, maxVel, maxAcc);
 		
 		motionDriveDistance = distance;
-		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
 	}
 	
 	public void rotate(double angle)
@@ -96,7 +96,6 @@ public class DriveController extends Thread
 		startMotion(angle, maxVel, maxAcc);
 		
 		motionRotateAngle = angle;
-		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
 	}
 	
 	
@@ -344,7 +343,7 @@ public class DriveController extends Thread
 					
 					leftPower = power; 
 					rightPower = -power;
-System.out.println("p.bearing=" + p.bearing + "motionRotateAngle=" + motionRotateAngle);
+//System.out.println("p.bearing=" + p.bearing + "motionRotateAngle=" + motionRotateAngle);
 					
 					if ((Math.abs(p.bearing - motionRotateAngle) < .05) && (Math.abs(robot.getRotationVelocity()) <= 0.05))
 					{

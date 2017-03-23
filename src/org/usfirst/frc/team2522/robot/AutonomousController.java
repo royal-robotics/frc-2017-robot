@@ -169,7 +169,7 @@ public final class AutonomousController
 	
 	public static boolean rotateTo(Robot robot, double angle, double maxVel, double maxAcc)
 	{
-		if (Math.abs(angle) < 1.0)
+		if (Math.abs(angle) > 1.0)
 		{
 			if (!autoIsDriving)
 			{
@@ -206,7 +206,7 @@ public final class AutonomousController
 	
 	public static boolean driveTo(Robot robot, double distance, double maxVel, double maxAcc)
 	{
-		if (Math.abs(distance) < 0.5)
+		if (Math.abs(distance) > 0.5)
 		{
 			if (!autoIsDriving)
 			{

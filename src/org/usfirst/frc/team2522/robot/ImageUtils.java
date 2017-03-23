@@ -254,8 +254,8 @@ public class ImageUtils
 
 					double a = range;
 					double b = pe * 10.25 / (double)r.width;
-		
-//					b = b - 1.0; // adjustment for practice bot camera placement.
+
+					b = b - 1.0; // adjustment for practice bot camera placement.
 					
 					result = Math.toDegrees(Math.atan(b / a));
 					
