@@ -6,6 +6,7 @@ import org.usfirst.frc.team2522.robot.ImageUtils;
 import org.usfirst.frc.team2522.robot.Robot;
 
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class AutoPlaceCenterDeadRecon extends AutoRoutine {
 
@@ -24,9 +25,9 @@ public class AutoPlaceCenterDeadRecon extends AutoRoutine {
 	 * 
 	 */
 	public void Periodic(Robot robot) {
-		if (autoStep == 0)
+		if (autoStep == 0) 
 		{
-			if (AutonomousController.driveTo(robot, 57.0))
+			if (AutonomousController.driveTo(robot, 57.0))	// 33.0
 			{
 				autoStep++;
 			}

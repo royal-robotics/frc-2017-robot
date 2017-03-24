@@ -32,7 +32,7 @@ public class AutoPlaceOutsidePeg extends AutoRoutine
 	public void Periodic(Robot robot) {
 		if (autoStep == 0) 
 		{
-			if (AutonomousController.driveTo(robot, 85.0))
+			if (AutonomousController.driveTo(robot, 80.0))
 			{
 				autoStep++;
 			}

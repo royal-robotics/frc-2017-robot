@@ -255,7 +255,10 @@ public class ImageUtils
 					double a = range;
 					double b = pe * 10.25 / (double)r.width;
 
-					b = b - 1.0; // adjustment for practice bot camera placement.
+					if (Robot.practiceBot)
+					{
+						b = b - 1.0; // adjustment for practice bot camera placement.
+					}
 					
 					result = Math.toDegrees(Math.atan(b / a));
 					
@@ -515,9 +518,7 @@ System.out.println("getPegRotationError(): No target found.");
 
 					double a = range;
 					double b = pe * 15.0 / (double)r.width;
-		
-//					b = b - 1.0; // adjustment for practice bot camera placement.
-					
+							
 					result = Math.toDegrees(Math.atan(b / a));
 					
 System.out.println("getBoilerRotationError=" + result);					

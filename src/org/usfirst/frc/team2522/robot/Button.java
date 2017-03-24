@@ -29,7 +29,7 @@ public class Button
 	 * 
 	 * @return true if the button is pressed and false otherwise.
 	 */
-	protected boolean getPosition()
+	protected synchronized boolean getPosition()
 	{
 		return this.stick.getRawButton(this.buttonId);
 	}
@@ -39,7 +39,7 @@ public class Button
 	 * 
 	 * @return	true if button action should happen, false otherwise.
 	 */
-	public boolean isPressed()
+	public synchronized boolean isPressed()
 	{
 		boolean value = this.getPosition();
 		boolean retValue = false;

@@ -29,9 +29,35 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 	 * 
 	 */
 	public void Periodic(Robot robot) {
-		if (autoStep == 0)
+//		if (autoStep == 0)
+//		{
+//			if (AutonomousController.driveTo(robot, 24.0))
+//			{
+//				autoStep++;
+//			}
+//		}
+//		else if (autoStep == 1)
+//		{
+//			ImageUtils.setCamera(robot.cameraLow);
+//			alignRotation = ImageUtils.getPegRotationError(60.0, "AutoImageStep" + autoStep + "_");
+//			while(alignRotation == Double.NaN)
+//			{
+//				alignRotation = ImageUtils.getPegRotationError(60.0);
+//			}
+//SmartDashboard.putNumber("Align Rotation", alignRotation);
+//System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
+//			autoStep++;
+//		}
+//		else if (autoStep == 2)
+//		{
+//			if (AutonomousController.rotateTo(robot, alignRotation))
+//			{
+//				autoStep++;
+//			}
+//		}
+		if (autoStep == 0) 
 		{
-			if (AutonomousController.driveTo(robot, 24.0))
+			if (AutonomousController.driveTo(robot, 57.0))	// 33.0
 			{
 				autoStep++;
 			}
@@ -39,10 +65,10 @@ public class AutoPlaceCenterPeg extends AutoRoutine
 		else if (autoStep == 1)
 		{
 			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(60.0, "AutoImageStep" + autoStep + "_");
+			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
-				alignRotation = ImageUtils.getPegRotationError(60.0);
+				alignRotation = ImageUtils.getPegRotationError(30.0);
 			}
 SmartDashboard.putNumber("Align Rotation", alignRotation);
 System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
@@ -57,38 +83,12 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 		}
 		else if (autoStep == 3) 
 		{
-			if (AutonomousController.driveTo(robot, 33.0))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 4)
-		{
-			ImageUtils.setCamera(robot.cameraLow);
-			alignRotation = ImageUtils.getPegRotationError(30.0, "AutoImageStep" + autoStep + "_");
-			while(alignRotation == Double.NaN)
-			{
-				alignRotation = ImageUtils.getPegRotationError(30.0);
-			}
-SmartDashboard.putNumber("Align Rotation", alignRotation);
-System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + alignRotation);
-			autoStep++;
-		}
-		else if (autoStep == 5)
-		{
-			if (AutonomousController.rotateTo(robot, alignRotation))
-			{
-				autoStep++;
-			}
-		}
-		else if (autoStep == 6) 
-		{
 			if (AutonomousController.driveTo(robot, 27.0, 150, 80.0))
 			{
 				autoStep++;
 			}
 		}
-		else if (autoStep == 7) 
+		else if (autoStep == 4) 
 		{
 			robot.gearDrapes.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -99,7 +99,7 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 			}
 			autoStep++;
 		}
-		else if (autoStep == 8) 
+		else if (autoStep == 5) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kForward);
 			try {
@@ -110,7 +110,7 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 			}
 			autoStep++;
 		}
-		else if (autoStep == 9) 
+		else if (autoStep == 6) 
 		{
 			if (AutonomousController.driveTo(robot, -5.0, 35.0, 50.0))
 			{
@@ -123,7 +123,7 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 				autoStep++;
 			}
 		}
-		else if (autoStep == 10) 
+		else if (autoStep == 7) 
 		{
 			robot.gearPushout.set(DoubleSolenoid.Value.kReverse);
 

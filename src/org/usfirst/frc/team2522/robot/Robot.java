@@ -21,6 +21,7 @@ import org.opencv.imgproc.Imgproc;
 
 import com.ctre.CANTalon;
 import com.ctre.CANTalon.FeedbackDevice;
+import com.ctre.CANTalon.TalonControlMode;
 import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.cscore.CvSink;
@@ -51,8 +52,8 @@ public class Robot extends IterativeRobot
 	
 	public DriveController driveController = null;
 	
-	public boolean testMode = true;
-	public boolean practiceBot = true;
+	public static final boolean testMode = true;
+	public static final boolean practiceBot = true;
 	
 	public double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public double kAf = 0.0037;
@@ -107,7 +108,7 @@ public class Robot extends IterativeRobot
 	CANTalon feeder = new CANTalon(2);
 	CANTalon climber1 = new CANTalon(3);
 	CANTalon climber2 = new CANTalon(4);
-	CANTalon intakeTalon = new CANTalon(5);
+	public CANTalon intakeTalon = new CANTalon(5);
 	
 	Encoder leftDriveEncoder = new Encoder(new DigitalInput(2), new DigitalInput(3));
 	Encoder rightDriveEncoder = new Encoder(new DigitalInput(4), new DigitalInput(5));
@@ -150,13 +151,13 @@ public class Robot extends IterativeRobot
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
 
 	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Toggle);
-	Button driverIntakeButton = new Button(rightStick, 2, ButtonType.Hold);
+	Button driveStraightButton = new Button(rightStick, 2, ButtonType.Hold);
 	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
 	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
 	
 	// Operator Controls
 	//
-	POVButton intakeButton = new POVButton(operatorStick, 0, 0, ButtonType.Hold);
+	Button intakeButton = new Button(operatorStick, 10, ButtonType.Hold);
 	POVButton gearPushoutButton = new POVButton(operatorStick, 0, 90, ButtonType.Hold);
 	
 	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
@@ -229,7 +230,6 @@ public class Robot extends IterativeRobot
 		
 		// Init Robot Timer
 		//
-		AutonomousController.Initialize(this);
 		robotTimer.reset();
 		robotTimer.start();
 		lastTime = robotTimer.get();
@@ -271,8 +271,17 @@ public class Robot extends IterativeRobot
 		{			
 		}
 		
-		shooter2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
-		shooter2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
+		shooter2.setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
+		shooter2.setPosition(0);
+		shooter2.setForwardSoftLimit(+15.0);
+		shooter2.setReverseSoftLimit(-15.0);
+		shooter2.configPeakOutputVoltage(5.0, -5.0);
+		shooter2.changeControlMode(TalonControlMode.PercentVbus);
+		
+		shooter1.changeControlMode(CANTalon.TalonControlMode.Follower);
+		shooter1.set(shooter2.getDeviceID());
+		shooter1.reverseOutput(true);
+
 		climber2.setFeedbackDevice(FeedbackDevice.QuadEncoder);
 		climber2.configEncoderCodesPerRev(1024);//This is wrong? shooterDistancePerPulse?
     	
@@ -326,6 +335,8 @@ public class Robot extends IterativeRobot
 		
 		driveController = new DriveController(this, 200);
 		driveController.start();
+//
+		AutonomousController.Initialize(this);
 	}
 
 	/**
@@ -373,6 +384,21 @@ public class Robot extends IterativeRobot
 	public void autonomousInit()
 	{
 		this.resetMotion();
+    	
+    	shifter.set(DoubleSolenoid.Value.kForward);			// high gear
+    	intakeSolenoid.set(DoubleSolenoid.Value.kReverse);	// intake down
+    	gearWall.set(DoubleSolenoid.Value.kReverse);		// wall down
+    	gearPushout.set(DoubleSolenoid.Value.kReverse);		// pushes back
+    	gearDrapes.set(DoubleSolenoid.Value.kReverse);		// draps up
+    	shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down
+
+    	setShooterPower(0.0);
+    	setFeederPower(0.0);
+    	intakeTalon.set(0.0);
+    	
+    	// Init Motion Control Values
+		//
+    	this.resetMotion();
 
 		AutonomousController.Initialize(this);
 	}
@@ -407,6 +433,19 @@ public class Robot extends IterativeRobot
 	public void teleopInit()
 	{
 		this.resetMotion();
+		
+		this.shifter.set(DoubleSolenoid.Value.kForward);		// high gear
+    	this.gearWall.set(DoubleSolenoid.Value.kReverse);		// wall down
+    	this.gearPushout.set(DoubleSolenoid.Value.kReverse);	// pushes back
+    	this.gearDrapes.set(DoubleSolenoid.Value.kReverse);		// draps up
+    	this.shooterHood.set(DoubleSolenoid.Value.kReverse);	// hood down
+		
+		this.setShooterPower(0.0);
+		
+		this.shooterHood.set(DoubleSolenoid.Value.kReverse);	// hood down				
+
+		this.intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+		this.intakeTalon.set(0.0);
 	}
 	
 	/**
@@ -441,7 +480,7 @@ public class Robot extends IterativeRobot
 		{
 			double power = SmartDashboard.getNumber("Test Drive Power", 1.0);
 			SmartDashboard.putNumber("Test Drive Power", power);
-			this.myDrive.tankDrive(-power, power, false);
+			this.myDrive.tankDrive(-power, -power, false);
 		}
 		else if (this.testMode && testTrackTargetButton.isPressed())
 		{
@@ -449,13 +488,26 @@ public class Robot extends IterativeRobot
 			{
 				double dist = SmartDashboard.getNumber("Test Drive Distance", 60.0);
 				SmartDashboard.putNumber("Test Drive Distance", dist);
+
+				double angle = Double.NaN;
 				
-				double angle = ImageUtils.getPegRotationError(dist);
-				SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+				if (ImageUtils.camera == this.cameraLow)
+				{
+					angle = ImageUtils.getPegRotationError(dist);
+					SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+				}
+				else
+				{
+					angle = ImageUtils.getBoilerRotationError(dist);
+					SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
+				}
 				
-				this.driveStraightBearing = this.getBearing();
-				driveController.rotate(angle);
-				this.motionDone = true;
+				if (angle != Double.NaN)
+				{
+					this.driveStraightBearing = this.getBearing();
+					driveController.rotate(angle);
+					this.motionDone = true;
+				}
 			}
 			else
 			{
@@ -471,7 +523,14 @@ public class Robot extends IterativeRobot
 
 			if (!wheelDrive)
 			{
-				myDrive.tankDrive(leftStick, rightStick, true);
+				if (driveStraightButton.isPressed())
+				{
+					this.driveStraight(this.driveStraightBearing, 1.0);
+				}
+				else
+				{
+					myDrive.tankDrive(leftStick, rightStick, true);
+				}
 			}
 			else
 			{
@@ -530,27 +589,17 @@ public class Robot extends IterativeRobot
 			}
 		}
 		
-		if (intakeButton.isPressed() || driverIntakeButton.isPressed())
+		if (intakeButton.isPressed())
 		{
-			if (intakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
-			{
-				intakeSolenoid.set(DoubleSolenoid.Value.kForward);
-			}
-			else
-			{
-				intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
-			}
-		}
-		
-		if (intakeRollerButton.isPressed() || (intakeSolenoid.get() == DoubleSolenoid.Value.kForward))
-		{
+			intakeSolenoid.set(DoubleSolenoid.Value.kForward);
 			intakeTalon.set(1.0);
 		}
 		else
 		{
 			intakeTalon.set(0.0);
+			intakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 		}
-		
+				
 		if (gearWallUpButton.isPressed())
 		{
 			gearWall.set(DoubleSolenoid.Value.kForward);
@@ -585,6 +634,7 @@ public class Robot extends IterativeRobot
 		if (feederButton.isPressed())
 		{
 			this.setFeederPower(0.75);
+			intakeTalon.set(1.0);
 		}
 		else
 		{
@@ -593,7 +643,7 @@ public class Robot extends IterativeRobot
 
 		if (shooterButton.isPressed())
 		{
-			this.setShooterPower(0.75);
+			this.setShooterPower(getDashboardShooterPower());
 		}
 		else
 		{
@@ -650,8 +700,15 @@ public class Robot extends IterativeRobot
 	
 	public void setShooterPower(double power)
 	{
-		shooter1.set(power);
+		//shooter1.set(power);
 		shooter2.set(-power);
+	}
+	
+	public double getDashboardShooterPower()
+	{
+		double result = SmartDashboard.getNumber("Shooter Power", 0.42);
+		SmartDashboard.putNumber("Shooter Power", result);
+		return result;
 	}
 	
 	public void setFeederPower(double power)
@@ -791,8 +848,7 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("rightDrivePower", rightDrive1.get());
 		SmartDashboard.putNumber("rightDriveEncoder", rightDriveEncoder.getDistance());
 
-//		SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
-		//SmartDashboard.putNumber("climberEncoder", climber2.getEncVelocity());
+		SmartDashboard.putNumber("shooterEncoder", shooter2.getEncVelocity());
 
 		SmartDashboard.putString("Transmission", shifter.get() == DoubleSolenoid.Value.kForward ? "High" : "Low");
 		SmartDashboard.putBoolean("Pickup Out", intakeSolenoid.get() == DoubleSolenoid.Value.kForward);

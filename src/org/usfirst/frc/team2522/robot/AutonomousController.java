@@ -45,13 +45,20 @@ public final class AutonomousController
 	
 	@SuppressWarnings("serial")
 	private static final Map<Integer, Map<Integer, AutoRoutine>> autoFieldPosMap = new HashMap<Integer, Map<Integer, AutoRoutine>>() {{
+				// Boiler
 				put(1, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceBoilerPeg());
+					put(2, new AutoHopperShoot());
+					put(3, new AutoBoilerShoot());
 				}});
+
+				// Center
 				put(2, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceCenterPeg());
 					put(2, new AutoPlaceCenterDeadRecon());
 				}});
+				
+				// Loading
 				put(3, new HashMap<Integer, AutoRoutine>() {{
 					put(1, new AutoPlaceOutsidePeg());
 				}});
@@ -182,13 +189,13 @@ public final class AutonomousController
 			}
 			else
 			{
-				autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+				autoIsDriving = (robot.driveController.getMotionStartTime() != 0.0);
 			}
 			
 			if (!autoIsDriving)
 			{
 				SmartDashboard.putNumber("Auto-Rotate-Actual", robot.getCurrentBearing() - autoDriveStartValue);
-	System.out.println("AutonomousController.rotateTo(): Actual Rotation=" + angle);			
+	System.out.println("AutonomousController.rotateTo(): Actual Rotation=" + (robot.getCurrentBearing() - autoDriveStartValue));			
 			}
 			
 			return !autoIsDriving;
@@ -217,7 +224,7 @@ public final class AutonomousController
 			}
 			else
 			{
-				autoIsDriving = (robot.driveController.motionStartTime != 0.0);
+				autoIsDriving = (robot.driveController.getMotionStartTime() != 0.0);
 			}
 			
 			if (!autoIsDriving)

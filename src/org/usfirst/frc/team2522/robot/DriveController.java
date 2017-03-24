@@ -52,7 +52,7 @@ public class DriveController extends Thread
 	{
 		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
 		motionStartBearing = robot.getBearing();
-		motionStartLeftDistance = robot.leftDriveEncoder.getDistance();
+		motionStartLeftDistance = robot.rightDriveEncoder.getDistance();
 		motionStartRightDistance = robot.rightDriveEncoder.getDistance();
 		motionStartVelocity = robot.getVelocity();
 		motionLastTime = 0.0;
@@ -79,7 +79,7 @@ public class DriveController extends Thread
 		this.drive(distance, 150.0, 100.0);
 	}
 	
-	public void drive(double distance, double maxVel, double maxAcc)
+	public synchronized void drive(double distance, double maxVel, double maxAcc)
 	{
 		startMotion(distance, maxVel, maxAcc);
 		
@@ -91,11 +91,16 @@ public class DriveController extends Thread
 		this.rotate(angle, 350.0, 350.0);
 	}
 	
-	public void rotate(double angle, double maxVel, double maxAcc)
+	public synchronized void rotate(double angle, double maxVel, double maxAcc)
 	{
 		startMotion(angle, maxVel, maxAcc);
 		
 		motionRotateAngle = angle;
+	}
+	
+	public synchronized double getMotionStartTime()
+	{
+		return motionStartTime;
 	}
 	
 	
@@ -247,7 +252,7 @@ public class DriveController extends Thread
 			
 			
 			
-			if (motionStartTime != 0.0) 
+			if (this.getMotionStartTime() != 0.0) 
 			{
 				t = robot.getTime() - motionStartTime;
 
@@ -279,7 +284,7 @@ public class DriveController extends Thread
 
 					// Calculate the distance proportional and derivative error.
 					//
-					double leftError = p.distance - (robot.leftDriveEncoder.getDistance() - motionStartLeftDistance);
+					double leftError = p.distance - (robot.rightDriveEncoder.getDistance() - motionStartLeftDistance);
 					leftPower = leftPower + (robot.kDp * leftError);
 
 					double leftDError = ((leftError - motionLastLeftError) / (t - motionLastTime)) - p.velocity;
@@ -291,6 +296,12 @@ public class DriveController extends Thread
 					double rightDError = ((rightError - motionLastRightError) / (t - motionLastTime)) - p.velocity;
 					rightPower = rightPower + (robot.kDd * rightDError);
 
+					double BError = motionStartBearing - robot.getBearing();
+					
+					leftPower = leftPower + (0.015 * BError);
+					rightPower = rightPower - (0.015 * BError);
+					
+					
 					robot.mLeftPError = leftError;
 					robot.mRightPError = rightError;
 
@@ -302,8 +313,8 @@ public class DriveController extends Thread
 					
 					motionLastTime = t;
 
-//					if ((p.distance == motionDriveDistance) && (Math.abs((robot.leftDriveEncoder.getDistance() - motionStartLeftDistance) - motionDriveDistance) < 2.0) && (Math.abs(robot.getVelocity()) < 1.0))
 					if ((p.distance == motionDriveDistance) &&  (Math.abs(robot.getVelocity()) == 0.0))
+//					if ((p.distance == motionDriveDistance))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				
