@@ -71,7 +71,7 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 		}
 		else if (autoStep == 4) 
 		{
-			if (AutonomousController.driveTo(robot, 50.0))
+			if (AutonomousController.driveTo(robot, 44.0))
 			{
 				autoStep++;
 			}
@@ -96,7 +96,7 @@ System.out.println(this.getName() + "-Step" + autoStep + ": Align Rotation=" + a
 		}
 		else if (autoStep == 7) 
 		{
-			if (AutonomousController.driveTo(robot, 24.0, 150, 80.0))
+			if (AutonomousController.driveTo(robot, 30.0, 150, 80.0))
 			{
 				autoStep++;
 			}

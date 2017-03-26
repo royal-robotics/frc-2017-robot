@@ -36,13 +36,13 @@ public class AutoBoilerShoot extends AutoRoutine {
 	@Override
 	public void Periodic(Robot robot) 
 	{
-		robot.setShooterPower(0.42);
+		robot.setShooterPower(0.75);
 		
 		if (autoStep == 0) 
 		{
 	    	robot.shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down				
 			
-			if (AutonomousController.driveTo(robot, -62.0))
+			if (AutonomousController.driveTo(robot, -64.0))
 			{
 				autoStep++;
 			}
@@ -63,10 +63,10 @@ public class AutoBoilerShoot extends AutoRoutine {
 		}
 		else if (autoStep == 2) 
 		{
-			alignRotation = ImageUtils.getBoilerRotationError(55.0, "AutoImageStep" + autoStep + "_");
+			alignRotation = ImageUtils.getBoilerRotationError(57.0, "AutoImageStep" + autoStep + "_");
 			while(alignRotation == Double.NaN)
 			{
-				alignRotation = ImageUtils.getBoilerRotationError(55.0);
+				alignRotation = ImageUtils.getBoilerRotationError(57.0);
 			}
 			autoStep++;
 		}
@@ -81,7 +81,7 @@ public class AutoBoilerShoot extends AutoRoutine {
 		{
 	    	robot.shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down				
 			
-			if (AutonomousController.driveTo(robot, 55.0))
+			if (AutonomousController.driveTo(robot, 57.0))
 			{
 				autoStep++;
 			}

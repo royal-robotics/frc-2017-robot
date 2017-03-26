@@ -37,7 +37,7 @@ public class AutoHopperShoot extends AutoRoutine {
 	@Override
 	public void Periodic(Robot robot) 
 	{
-		robot.setShooterPower(0.42);
+		robot.setShooterPower(0.75);	// .42
 		
 		if (autoStep == 0) 
 		{
@@ -50,14 +50,14 @@ public class AutoHopperShoot extends AutoRoutine {
 		    	robot.shooterHood.set(DoubleSolenoid.Value.kForward);		// hood up				
 			}
 			
-			if (AutonomousController.driveTo(robot, -70.0))
+			if (AutonomousController.driveTo(robot, -65.0))		// -70
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 1)
 		{
-			double angle = 45.0;
+			double angle = 55.0;		// 45
 			
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
 			{
@@ -71,14 +71,14 @@ public class AutoHopperShoot extends AutoRoutine {
 		}
 		else if (autoStep == 2) 
 		{
-			if (AutonomousController.driveTo(robot, -45.0))
+			if (AutonomousController.driveTo(robot, -60.0))  // was -52
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 3)
 		{
-			double angle = -65.0;
+			double angle = -75.0;	// -65.0
 
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
 			{
@@ -92,7 +92,7 @@ public class AutoHopperShoot extends AutoRoutine {
 		}
 		else if (autoStep == 4) 
 		{
-			if (AutonomousController.driveTo(robot, 24.0))
+			if (AutonomousController.driveTo(robot, 40.0)) // 24.0
 			{
 				autoStep++;
 			}

@@ -53,7 +53,7 @@ public class Robot extends IterativeRobot
 	public DriveController driveController = null;
 	
 	public static final boolean testMode = true;
-	public static final boolean practiceBot = true;
+	public static final boolean practiceBot = false;
 	
 	public double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public double kAf = 0.0037;
@@ -136,7 +136,7 @@ public class Robot extends IterativeRobot
 	
 	// Driver Controls
 	//
-	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
+	Button shiftButton = new Button(leftStick, 1, ButtonType.Hold);
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
 	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
 	Button testTrackTargetButton = new Button(leftStick, 5, ButtonType.Hold);
@@ -150,27 +150,24 @@ public class Robot extends IterativeRobot
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
 
-	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Toggle);
+	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Hold);
 	Button driveStraightButton = new Button(rightStick, 2, ButtonType.Hold);
 	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
 	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
 	
 	// Operator Controls
 	//
-	Button intakeButton = new Button(operatorStick, 10, ButtonType.Hold);
 	POVButton gearPushoutButton = new POVButton(operatorStick, 0, 90, ButtonType.Hold);
 	
 	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
 	Button gearWallDnButton = new Button(operatorStick, 2, ButtonType.Toggle);
 	Button gearWallUpButton = new Button(operatorStick, 4, ButtonType.Toggle);
-
 	Button shooterHoodButton = new Button(operatorStick, 5, ButtonType.Toggle);
 	Button feederButton = new Button(operatorStick, 6, ButtonType.Hold);
 	Button intakeRollerButton = new Button(operatorStick, 7, ButtonType.Hold);	
 	Button shooterButton = new Button(operatorStick, 8, ButtonType.Hold);
-	
 	Button climberButton = new Button(operatorStick, 9, ButtonType.Hold);
-	Button unjammerButton = new Button(operatorStick, 10, ButtonType.Hold);
+	Button intakeButton = new Button(operatorStick, 10, ButtonType.Hold);
 	
 	
 	//  (<Wheel Diameter in Inches> * <Pi>) / (<Pulses Per Rotation> * <Encoder Mount Gearing> <Third Stage Gearing>)  //
@@ -236,12 +233,15 @@ public class Robot extends IterativeRobot
 
 		// Init Drive Base Encoders
 		//
+		if (!practiceBot)
+		{
+			leftDriveTranDistancePerPulse = (3.50 * 3.1415) / (250.00);
+		}
 		leftDriveEncoder.setReverseDirection(true);
 		leftDriveEncoder.setDistancePerPulse(leftDriveTranDistancePerPulse);
 		leftDriveEncoder.reset();
 		rightDriveEncoder.setDistancePerPulse(rightDriveTranDistancePerPulse);
 		rightDriveEncoder.reset();
-				
 		
 		myDrive.setSafetyEnabled(false);
 		leftDrive1.setSafetyEnabled(false);
@@ -580,6 +580,7 @@ public class Robot extends IterativeRobot
 		if (shiftButton.isPressed() || shiftButton2.isPressed())
 		{
 			if (shifter.get() == DoubleSolenoid.Value.kForward)
+
 			{
 				shifter.set(DoubleSolenoid.Value.kReverse);
 			}
@@ -633,12 +634,14 @@ public class Robot extends IterativeRobot
 		
 		if (feederButton.isPressed())
 		{
-			this.setFeederPower(0.75);
-			intakeTalon.set(1.0);
+			this.setFeederPower(getDashboardFeederPower());	// .75
+			this.unjammer.set(getDashboardUnjammerPower());
+//			intakeTalon.set(1.0);
 		}
 		else
 		{
 			this.setFeederPower(0.0);
+			unjammer.set(0.0);
 		}
 
 		if (shooterButton.isPressed())
@@ -686,15 +689,6 @@ public class Robot extends IterativeRobot
 			climber1.set(0.0);
 			climber2.set(0.0);
 		}
-		
-		if (unjammerButton.isPressed())
-		{
-			unjammer.set(1.0);
-		}
-		else
-		{
-			unjammer.set(0.0);
-		}
 	}
 	
 	
@@ -711,6 +705,20 @@ public class Robot extends IterativeRobot
 		return result;
 	}
 	
+	public double getDashboardUnjammerPower()
+	{
+		double result = SmartDashboard.getNumber("Unjammer Power", 0.10);
+		SmartDashboard.putNumber("Unjammer Power", result);
+		return result;
+	}
+	
+	public double getDashboardFeederPower()
+	{
+		double result = SmartDashboard.getNumber("Feeder Power", 0.5);
+		SmartDashboard.putNumber("Feeder Power", result);
+		return result;
+	}
+
 	public void setFeederPower(double power)
 	{
 		feeder.set(-power);
@@ -760,7 +768,7 @@ public class Robot extends IterativeRobot
 	
 	public double getCurrentDistance()
 	{
-		return this.leftDriveEncoder.getDistance();
+		return this.rightDriveEncoder.getDistance();
 	}
 
 	public double getBearing()
