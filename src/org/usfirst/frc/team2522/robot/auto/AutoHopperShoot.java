@@ -115,7 +115,8 @@ public class AutoHopperShoot extends AutoRoutine {
 		}
 		else if (autoStep == 7)
 		{
-			robot.setFeederPower(0.75);
+			robot.setFeederPower(robot.getDashboardFeederPower());
+			robot.unjammer.set(robot.getDashboardUnjammerPower());
 			robot.intakeSolenoid.set(DoubleSolenoid.Value.kForward);
 			robot.intakeTalon.set(1.0);
 			autoStep++;

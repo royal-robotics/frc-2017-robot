@@ -101,7 +101,7 @@ public class Robot extends IterativeRobot
 	VictorSP leftDrive2 = new VictorSP(1);
 	VictorSP rightDrive1 = new VictorSP(2);
 	VictorSP rightDrive2 = new VictorSP(3);
-	Spark unjammer = new Spark(4);
+	public Spark unjammer = new Spark(5);
 
 	CANTalon shooter1 = new CANTalon(0);
 	CANTalon shooter2 = new CANTalon(1);

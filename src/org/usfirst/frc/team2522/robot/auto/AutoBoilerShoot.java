@@ -36,7 +36,7 @@ public class AutoBoilerShoot extends AutoRoutine {
 	@Override
 	public void Periodic(Robot robot) 
 	{
-		robot.setShooterPower(0.75);
+		robot.setShooterPower(0.60);
 		
 		if (autoStep == 0) 
 		{
@@ -81,14 +81,15 @@ public class AutoBoilerShoot extends AutoRoutine {
 		{
 	    	robot.shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down				
 			
-			if (AutonomousController.driveTo(robot, 57.0))
+			if (AutonomousController.driveTo(robot, 67.0))	//57
 			{
 				autoStep++;
 			}
 		}
 		else if (autoStep == 5)
 		{
-			robot.setFeederPower(0.75);
+			robot.setFeederPower(robot.getDashboardFeederPower());
+			robot.unjammer.set(robot.getDashboardUnjammerPower());
 			robot.intakeSolenoid.set(DoubleSolenoid.Value.kForward);
 			robot.intakeTalon.set(1.0);
 			autoStep++;
