@@ -235,7 +235,7 @@ public class Robot extends IterativeRobot
 		//
 		if (!practiceBot)
 		{
-			leftDriveTranDistancePerPulse = (3.50 * 3.1415) / (250.00);
+			//leftDriveTranDistancePerPulse = (3.50 * 3.1415) / (250.00);
 		}
 		leftDriveEncoder.setReverseDirection(true);
 		leftDriveEncoder.setDistancePerPulse(leftDriveTranDistancePerPulse);

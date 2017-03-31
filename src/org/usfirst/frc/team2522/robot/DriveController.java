@@ -52,7 +52,7 @@ public class DriveController extends Thread
 	{
 		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
 		motionStartBearing = robot.getBearing();
-		motionStartLeftDistance = robot.rightDriveEncoder.getDistance();
+		motionStartLeftDistance = robot.leftDriveEncoder.getDistance();
 		motionStartRightDistance = robot.rightDriveEncoder.getDistance();
 		motionStartVelocity = robot.getVelocity();
 		motionLastTime = 0.0;
@@ -284,7 +284,7 @@ public class DriveController extends Thread
 
 					// Calculate the distance proportional and derivative error.
 					//
-					double leftError = p.distance - (robot.rightDriveEncoder.getDistance() - motionStartLeftDistance);
+					double leftError = p.distance - (robot.leftDriveEncoder.getDistance() - motionStartLeftDistance);
 					leftPower = leftPower + (robot.kDp * leftError);
 
 					double leftDError = ((leftError - motionLastLeftError) / (t - motionLastTime)) - p.velocity;
