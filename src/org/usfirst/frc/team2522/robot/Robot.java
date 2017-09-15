@@ -121,6 +121,7 @@ public class Robot extends IterativeRobot
 	public DoubleSolenoid gearPushout = new DoubleSolenoid(0, 0, 7);	
 	public DoubleSolenoid gearDrapes = new DoubleSolenoid(1, 3, 4);
 	public DoubleSolenoid shooterHood = new DoubleSolenoid(1, 2, 5);
+	public DoubleSolenoid agitator = new DoubleSolenoid (1, 6, 7);
 		
 	AnalogInput sensor = new AnalogInput(0);
 	AHRS gyro;
@@ -136,7 +137,7 @@ public class Robot extends IterativeRobot
 	
 	// Driver Controls
 	//
-	Button shiftButton = new Button(leftStick, 1, ButtonType.Hold);
+	Button shiftButton = new Button(leftStick, 1, ButtonType.Toggle);
 	Button switchCameras = new Button(leftStick, 2, ButtonType.Hold);
 	Button takeImageButton = new Button(leftStick, 3, ButtonType.Toggle);
 	Button testTrackTargetButton = new Button(leftStick, 5, ButtonType.Hold);
@@ -150,10 +151,10 @@ public class Robot extends IterativeRobot
 	// Debug Buttons
 	Button i2cButton = new Button(leftStick, 11, ButtonType.Toggle);
 
-	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Hold);
+	Button shiftButton2 = new Button(rightStick, 1, ButtonType.Toggle);
 	Button driveStraightButton = new Button(rightStick, 2, ButtonType.Hold);
-	Button quickTurnButtonLeft = new Button(rightStick, 5, ButtonType.Hold);
-	Button quickTurnButtonRight = new Button(rightStick, 6, ButtonType.Hold);
+	Button quickTurnButtonLeft = new Button(leftStick, 4, ButtonType.Hold);
+	//Button quickTurnButtonRight = new Button(leftStick, 13, ButtonType.Hold);
 	
 	// Operator Controls
 	//
@@ -161,6 +162,7 @@ public class Robot extends IterativeRobot
 	
 	Button gearDrapesButton = new Button(operatorStick, 1, ButtonType.Hold);
 	Button gearWallDnButton = new Button(operatorStick, 2, ButtonType.Toggle);
+	Button agitatorButton = new Button(operatorStick, 3, ButtonType.Hold);
 	Button gearWallUpButton = new Button(operatorStick, 4, ButtonType.Toggle);
 	Button shooterHoodButton = new Button(operatorStick, 5, ButtonType.Toggle);
 	Button feederButton = new Button(operatorStick, 6, ButtonType.Hold);
@@ -259,8 +261,8 @@ public class Robot extends IterativeRobot
 		
 		unjammer.setSafetyEnabled(false);
 		
-		wheelDrive = false;
-		SmartDashboard.putBoolean("wheelDrive", false);
+		//wheelDrive = false;
+		SmartDashboard.putBoolean("wheelDrive", wheelDrive);
 
 		try 
 		{
@@ -291,6 +293,7 @@ public class Robot extends IterativeRobot
     	gearPushout.set(DoubleSolenoid.Value.kReverse);		// pushes back
     	gearDrapes.set(DoubleSolenoid.Value.kReverse);		// draps up
     	shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down
+    	agitator.set(DoubleSolenoid.Value.kForward);
 
     	// Init Motion Control Values
 		//
@@ -534,11 +537,11 @@ public class Robot extends IterativeRobot
 			}
 			else
 			{
-				double leftPower = leftStick.getY();			
+				double leftPower = leftStick.getRawAxis(3);	
 				double rightPower = leftPower;
-				double wheelValue = rightStick.getX();
+				double wheelValue = leftStick.getRawAxis(0);
 				
-				if (quickTurnButtonLeft.isPressed() || quickTurnButtonRight.isPressed())
+				if (quickTurnButtonLeft.isPressed())
 				{
 					rightPower = wheelValue;
 					leftPower = -wheelValue;
@@ -577,10 +580,9 @@ public class Robot extends IterativeRobot
 			}
 		}
 		
-		if (shiftButton.isPressed() || shiftButton2.isPressed())
+		if (shiftButton.isPressed())
 		{
 			if (shifter.get() == DoubleSolenoid.Value.kForward)
-
 			{
 				shifter.set(DoubleSolenoid.Value.kReverse);
 			}
@@ -663,6 +665,14 @@ public class Robot extends IterativeRobot
 			{
 				shooterHood.set(DoubleSolenoid.Value.kForward);
 			}
+		}
+		if (agitatorButton.isPressed())
+		{
+			agitator.set(DoubleSolenoid.Value.kReverse);
+		}
+		else
+		{
+			agitator.set(DoubleSolenoid.Value.kForward);
 		}
 		
 		//if(i2cButton.isPressed()) {
@@ -924,6 +934,8 @@ public class Robot extends IterativeRobot
 		SmartDashboard.putNumber("H Upper", hsvUpperHue);
 		SmartDashboard.putNumber("S Upper", hsvUpperSat);
 		SmartDashboard.putNumber("V Upper", hsvUpperVal);
+		SmartDashboard.putNumber("leftPower", leftStick.getRawAxis(3));
+		SmartDashboard.putNumber("wheelValue", leftStick.getRawAxis(0));
 	}
 	
 }
