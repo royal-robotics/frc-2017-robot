@@ -13,7 +13,7 @@ public class AutoBoilerShoot extends AutoRoutine {
 	/**
 	 * 
 	 */
-	public static double alignRotation = 0.0;
+	public double alignRotation = 0.0;
 
 	/**
 	 * 
@@ -26,29 +26,27 @@ public class AutoBoilerShoot extends AutoRoutine {
 		alignRotation = 0.0;
 		
 		ImageUtils.setCamera(robot.cameraHigh);
-	}
-	
-
-
-	/**
-	 * 
-	 */
-	@Override
-	public void Periodic(Robot robot) 
-	{
-		robot.setShooterPower(0.60);
 		
-		if (autoStep == 0) 
-		{
+		this.addAutoStep("Put Hood Down", (Robot r) -> {
 	    	robot.shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down				
-			
+			return true;
+		});
+		
+		this.addAutoStep("Start Shooter", (Robot r) -> {
+			robot.setShooterPower(0.60);
+			return true;
+		});
+		
+		this.addAutoStep("Drive Forward", (Robot r) -> {			
 			if (AutonomousController.driveTo(robot, -64.0))
 			{
-				autoStep++;
+				return true;
 			}
-		}
-		else if (autoStep == 1)
-		{
+			
+			return false;
+		});
+		
+		this.addAutoStep("Turn Towards Boiler", (Robot r) -> {
 			double angle = -35.0;
 			
 			if (this.getAlliance() == DriverStation.Alliance.Blue)
@@ -58,46 +56,50 @@ public class AutoBoilerShoot extends AutoRoutine {
 				
 			if (AutonomousController.rotateTo(robot, angle, 300.0, 500.0))
 			{
-				autoStep++;
+				return true;
 			}
-		}
-		else if (autoStep == 2) 
-		{
+			
+			return false;
+		});
+		
+		this.addAutoStep("Get Boiler Rotation Error", (Robot r) -> {
 			alignRotation = ImageUtils.getBoilerRotationError(57.0, "AutoImageStep" + autoStep + "_");
-			while(alignRotation == Double.NaN)
+			
+			if (alignRotation != Double.NaN)
 			{
-				alignRotation = ImageUtils.getBoilerRotationError(57.0);
+				AutonomousController.println("  AutoRotation Error = " + alignRotation);
+				return true;
 			}
-			autoStep++;
-		}
-		else if (autoStep == 3)
-		{
+			
+			return false;
+		});
+		
+		this.addAutoStep("Turn Towards Boiler", (Robot r) -> {
 			if (AutonomousController.rotateTo(robot, alignRotation))
 			{
-				autoStep++;
+				return true;
 			}
-		}
-		else if (autoStep == 4) 
-		{
-	    	robot.shooterHood.set(DoubleSolenoid.Value.kReverse);		// hood down				
 			
-			if (AutonomousController.driveTo(robot, 67.0))	//57
+			return false;
+		});
+		
+		this.addAutoStep("Drive to Boiler Wall", (Robot r) -> {
+			if (AutonomousController.driveTo(robot, 67.0))	// 57
 			{
-				autoStep++;
+				return true;
 			}
-		}
-		else if (autoStep == 5)
-		{
+			
+			return false;
+		});
+		
+		this.addAutoStep("Start Feeder and Intake", (Robot r) -> {
+			robot.myDrive.tankDrive(0.0, 0.0);
 			robot.setFeederPower(robot.getDashboardFeederPower());
 			robot.unjammer.set(robot.getDashboardUnjammerPower());
 			robot.intakeSolenoid.set(DoubleSolenoid.Value.kForward);
 			robot.intakeTalon.set(1.0);
-			autoStep++;
-		}
-		else
-		{
-			robot.myDrive.tankDrive(0.0, 0.0);
-		}
+			return true;
+		});
 	}
 
 }

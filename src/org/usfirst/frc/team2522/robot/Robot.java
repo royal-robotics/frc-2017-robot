@@ -19,6 +19,8 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
+import org.usfirst.frc.team2522.robot.auto.*;
+
 import com.ctre.CANTalon;
 import com.ctre.CANTalon.FeedbackDevice;
 import com.ctre.CANTalon.TalonControlMode;
@@ -44,6 +46,7 @@ import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.hal.I2CJNI;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot
@@ -55,12 +58,14 @@ public class Robot extends IterativeRobot
 	public static final boolean testMode = true;
 	public static final boolean practiceBot = false;
 	
+	public double kWheelBaseWidth = 31.15;
+	
 	public double kVf	= 1.0 / 175.0;	// 1 / max velocity
 	public double kAf = 0.0037;
 	public double kBf = 0.0012;	// .0020
 	public double kDp = 0.0165;
 	public double kDd = 0.0006;
-	public double kBp = 0.0015;
+	public double kBp = 0.015;
 
 	public double kRVf	= 1.0 / 405.0;	// 1 / max rotational velocity
 	public double kRAf = 0.00130;
@@ -189,9 +194,25 @@ public class Robot extends IterativeRobot
 	double currentExposure = -99.0;		// keep track of exposure changes so we do not hammer the USB camera with calls
 	double currentWhiteBalance = -99.0;	// keep track of white balance changes so we do not hammer the USB camera with calls
 	
+	SendableChooser<String> autoPositionChooser;
+	SendableChooser<AutoRoutine> autoRoutineChooser;
 		
 	public void robotInit()
 	{
+		autoPositionChooser = new SendableChooser<String>();
+		autoPositionChooser.addDefault("Boiler", "BoilerSide");
+		autoPositionChooser.addObject("Center", "BoilerSide");
+		autoPositionChooser.addObject("Loader", "BoilerSide");
+		SmartDashboard.putData("Position", autoPositionChooser);
+	
+		autoRoutineChooser = new SendableChooser<AutoRoutine>();
+		AutoRoutine r = new AutoBoilerShoot();
+		autoRoutineChooser.addDefault(r.getName(), r);
+		r = new AutoHopperShoot();
+		autoRoutineChooser.addObject(r.getName(), r);
+		r = new AutoPlaceBoilerPeg();
+		autoRoutineChooser.addObject(r.getName(), r);
+		
 		if (practiceBot)
 		{
 			// practice settings

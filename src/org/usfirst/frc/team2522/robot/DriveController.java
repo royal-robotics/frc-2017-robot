@@ -50,12 +50,12 @@ public class DriveController extends Thread
 	
 	private void startMotion(double distance, double maxVel, double maxAcc)
 	{
-		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
-		motionStartBearing = robot.getBearing();
-		motionStartLeftDistance = robot.leftDriveEncoder.getDistance();
-		motionStartRightDistance = robot.rightDriveEncoder.getDistance();
-		motionStartVelocity = robot.getVelocity();
-		motionLastTime = 0.0;
+//		motionStartTime = robot.getTime();	// move this here to prevent drive thread from prematurely ending motion.
+//		motionStartBearing = robot.getBearing();
+//		motionStartLeftDistance = robot.leftDriveEncoder.getDistance();
+//		motionStartRightDistance = robot.rightDriveEncoder.getDistance();
+//		motionStartVelocity = robot.getVelocity();
+//		motionLastTime = 0.0;
 		
 		motionLastBearingError = 0.0;
 		motionLastLeftError = 0.0;
@@ -121,20 +121,12 @@ public class DriveController extends Thread
 			
 			// bearing delta
 			double b = currentBearing - robot.lastBearing;
-//			if (Math.abs(b) < 0.05)
-//			{
-//				b = 0.0;
-//			}
 			
 			double rv = b / t;
 			double ra = (rv - robot.lastRotationalVelocity) / t;
 	
 			// distance delta
 			double d = currentDistance - robot.lastDistance;
-//			if (Math.abs(d) < 0.1)
-//			{
-//				d = 0.0;
-//			}
 			
 			double v = d / t;
 			double a = (v - robot.lastVelocity) / t;
@@ -296,10 +288,12 @@ public class DriveController extends Thread
 					double rightDError = ((rightError - motionLastRightError) / (t - motionLastTime)) - p.velocity;
 					rightPower = rightPower + (robot.kDd * rightDError);
 
+					// Calculate the bearing error.
+					//
 					double BError = motionStartBearing - robot.getBearing();
 					
-					leftPower = leftPower + (0.015 * BError);
-					rightPower = rightPower - (0.015 * BError);
+					leftPower = leftPower + (robot.kBp * BError);
+					rightPower = rightPower - (robot.kBp * BError);
 					
 					
 					robot.mLeftPError = leftError;
@@ -314,7 +308,6 @@ public class DriveController extends Thread
 					motionLastTime = t;
 
 					if ((p.distance == motionDriveDistance) &&  (Math.abs(robot.getVelocity()) == 0.0))
-//					if ((p.distance == motionDriveDistance))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				
@@ -354,9 +347,8 @@ public class DriveController extends Thread
 					
 					leftPower = power; 
 					rightPower = -power;
-//System.out.println("p.bearing=" + p.bearing + "motionRotateAngle=" + motionRotateAngle);
 					
-					if ((Math.abs(p.bearing - motionRotateAngle) < .05) && (Math.abs(robot.getRotationVelocity()) <= 0.05))
+					if ((Math.abs(p.bearing - motionRotateAngle) < 0.1) && (Math.abs(robot.getRotationVelocity()) <= 0.1))
 					{
 						motionStartTime = 0.0;
 						leftPower = 0;				

@@ -6,6 +6,111 @@ public class MotionControl
 {
 	/**
 	 * 
+	 * @param frequency	The update frequency used to drive the robot measured in Herz.
+	 * @param d			The distance to travel, negative distances imply movement backwards
+	 * @param vi		The initial velocity of the robot.
+	 * @param maxV		The maximum velocity that the robot should travel.  This should always be a positive value regardless of the direction the robot is moving.
+	 * @param maxA		The maximum acceleration that the robot should undergo.  This should always be a positive value regardless of the direction the robot is moving.
+	 * 
+	 * @return An array of MotionPositions that contained the expected motion parameters.			
+	 */
+	public static MotionPosition[] getDriveStraightProfile(int frequency, double d, double vi, double maxV, double maxA)
+	{
+		return getDriveStraightProfile(frequency, d, vi, 0.0, maxV, maxA);
+	}
+	
+	/**
+	 * 
+	 * @param frequency	The update frequency used to drive the robot measured in Herz.
+	 * @param d			The distance to travel, negative distances imply movement backwards
+	 * @param vi		The initial velocity of the robot.
+	 * @param maxV		The maximum velocity that the robot should travel.  This should always be a positive value regardless of the direction the robot is moving.
+	 * @param maxA		The maximum acceleration that the robot should undergo.  This should always be a positive value regardless of the direction the robot is moving.
+	 * 
+	 * @return An array of MotionPositions that contained the expected motion parameters.			
+	 */
+	public static MotionPosition[] getDriveStraightProfile(int frequency, double d, double vi, double vf, double maxV, double maxA)
+	{
+		MotionPosition result[] = null;
+		maxV = Math.abs(maxV);
+		maxA = Math.abs(maxA);
+
+		double maxVel = maxV;
+		double maxAccl = maxA;
+		if (d < 0.0)
+		{
+			maxVel = -maxVel;
+			maxAccl = -maxAccl;
+		}
+		
+		/**
+		 * Velocity at beginning of acceleration.
+		 */
+		double accl_vi = vi;
+		
+		/**
+		 * Velocity at end of acceleration.
+		 */
+		double accl_vf = maxVel;
+		
+		/**
+		 * Time spent accelerating.
+		 */
+		double accl_t = getTimeToVelocity(accl_vf, accl_vi, maxAccl);
+		
+		/**
+		 * Distance traveled while accelerating.
+		 */
+		double accl_d = getDistance(accl_t, accl_vi, maxAccl);
+		
+		/**
+		 * Velocity at beginning of acceleration.
+		 */
+		double cruise_vi = maxVel;
+		
+		/**
+		 * Velocity at end of acceleration.
+		 */
+		double cruise_vf = maxVel;
+		
+		/**
+		 * Time spent at cruise speed.
+		 */
+		double cruise_t = 0.0;
+		
+		/**
+		 * Distance traveled at cruise speed.
+		 */
+		double cruise_d = 0.0;
+		
+		/**
+		 * Velocity at beginning of breaking.
+		 */
+		double break_vi = accl_vf;
+		
+		/**
+		 * Velocity at end of breaking.
+		 */
+		double break_vf = vf;
+		
+		/**
+		 * Time spent breaking.
+		 */
+		double break_t = getTimeToVelocity(break_vf, break_vi, -maxAccl);
+		
+		/**
+		 * Distance traveled while breaking.
+		 */
+		double break_d = getDistance(break_t, break_vi, -maxAccl);
+		
+		
+		return result;
+	}
+	
+	
+	
+	/**
+	 * 
 	 * @param t
 	 * @param distance
 	 * @param bearing

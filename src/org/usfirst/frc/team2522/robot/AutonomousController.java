@@ -167,6 +167,11 @@ public final class AutonomousController
 		}
 	}
 	
+	public static void println(String s)
+	{
+		System.out.printf("%5.2f - %s%n", autoTimer.get(), s);
+	}
+	
 	
 	
 	public static boolean rotateTo(Robot robot, double angle)
@@ -176,12 +181,12 @@ public final class AutonomousController
 	
 	public static boolean rotateTo(Robot robot, double angle, double maxVel, double maxAcc)
 	{
-		if (Math.abs(angle) > 1.0)
+		if (Math.abs(angle) > 0.5)
 		{
 			if (!autoIsDriving)
 			{
 				SmartDashboard.putNumber("Auto-Rotate-Desired", angle);
-	System.out.println("AutonomousController.rotateTo(): Requested Rotation=" + angle);			
+				AutonomousController.println("  rotateTo(): Requested Rotation=" + angle);
 				autoDriveStartValue = robot.getCurrentBearing();
 				
 				robot.driveController.rotate(angle, maxVel, maxAcc);
@@ -195,7 +200,7 @@ public final class AutonomousController
 			if (!autoIsDriving)
 			{
 				SmartDashboard.putNumber("Auto-Rotate-Actual", robot.getCurrentBearing() - autoDriveStartValue);
-	System.out.println("AutonomousController.rotateTo(): Actual Rotation=" + (robot.getCurrentBearing() - autoDriveStartValue));			
+				AutonomousController.println("  rotateTo(): Actual Rotation=" + (robot.getCurrentBearing() - autoDriveStartValue));
 			}
 			
 			return !autoIsDriving;
@@ -217,7 +222,8 @@ public final class AutonomousController
 		{
 			if (!autoIsDriving)
 			{
-				autoDriveStartValue = robot.leftDriveEncoder.getDistance();
+				AutonomousController.println("  driveTo(): Requested Distance=" + distance);
+				autoDriveStartValue = robot.getCurrentDistance();
 	
 				robot.driveController.drive(distance, maxVel, maxAcc);
 				autoIsDriving = true;
@@ -229,7 +235,8 @@ public final class AutonomousController
 			
 			if (!autoIsDriving)
 			{
-				SmartDashboard.putNumber("Auto-Drive", robot.leftDriveEncoder.getDistance() - autoDriveStartValue);
+				SmartDashboard.putNumber("Auto-Drive", robot.getCurrentDistance() - autoDriveStartValue);
+				AutonomousController.println("  driveTo(): Actual Distance=" + (robot.getCurrentBearing() - autoDriveStartValue));
 			}
 			
 			return !autoIsDriving;
